@@ -1,0 +1,9 @@
+# workspace
+/.my127ws
+/docker-compose.yml
+/workspace.override.yml
+
+# project
+/benchmarks/reports/*
+/docker-compose.override.yml
+/kafka-outbox-relay

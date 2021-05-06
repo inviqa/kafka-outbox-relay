@@ -1,0 +1,14 @@
+version: '3'
+services:
+  kafka:
+    ports:
+      - "9092:9092"
+  zookeeper:
+    ports:
+      - "2181:2181"
+  postgres:
+    ports:
+      - "15432:5432"
+  mysql:
+    ports:
+      - "13306:3306"

@@ -1,0 +1,92 @@
+workspace('kafka-outbox-relay'):
+  description: local workspace for kafka-outbox-relay.
+  harness: inviqa/go:v0.8.0
+  overlay: tools/workspace
+
+command('go test integration all'):
+  env:
+    COMPOSE_PROJECT_NAME: = @('namespace')
+  exec: |
+    #!bash(workspace:/)|@
+    LOG_LEVEL=error DB_DRIVER=postgres go test -count=1 -v --tags=integration ./integration/
+    LOG_LEVEL=error DB_DRIVER=mysql go test -count=1 -v --tags=integration ./integration/
+
+command('go test integration docker <db-driver>'):
+  env:
+    COMPOSE_PROJECT_NAME: = @('namespace')
+    DB_DRIVER: = input.argument('db-driver')
+  exec: |
+    #!bash(workspace:/)|@
+    passthru docker-compose exec -T -e GO_TEST_MODE=docker -e LOG_LEVEL=error -e DB_DRIVER=${DB_DRIVER} app go test -count=1 -v --tags=integration ./integration/
+
+command('go test integration <db-driver>'):
+  env:
+    COMPOSE_PROJECT_NAME: = @('namespace')
+    DB_DRIVER: = input.argument('db-driver')
+  exec: |
+    #!bash(workspace:/)|@
+    passthru docker-compose exec -T -e LOG_LEVEL=error -e DB_DRIVER=${DB_DRIVER} app go test -count=1 -v --tags=integration ./integration/
+
+command('go bench'):
+  env:
+    COMPOSE_PROJECT_NAME: = @('namespace')
+  exec: |
+    #!bash(workspace:/)|@
+    passthru docker-compose exec -T -e LOG_LEVEL=error app go test --tags=benchmarks -count=5 -bench=. ./benchmarks
+
+command('go bench compare %'):
+  env:
+    COMPOSE_PROJECT_NAME: = @('namespace')
+    FILENAME: = input.argument('%')
+  exec: |
+    #!bash(workspace:/)|@
+    docker-compose exec -T -e LOG_LEVEL=error app go test --tags=benchmarks -count=5 -bench=. ./benchmarks > ./benchmarks/reports/${FILENAME}.txt
+
+command('go docker sec'):
+  env:
+    COMPOSE_PROJECT_NAME: = @('namespace')
+  exec: |
+    #!bash(workspace:/)|@
+    docker-compose exec -T app gosec -exclude-dir=.my127ws ./...
+
+
+attributes:
+  app:
+    binary: app
+    services: [kafka, mysql, postgres, zookeeper]
+    bundle_certs: yes
+  kafka:
+    host: kafka:29092
+  database:
+    host: mysql
+    port: 3306
+    user: kafka-outbox-relay
+    pass: kafka-outbox-relay
+    name: kafka-outbox-relay
+    table_name: kafka_outbox
+    driver: mysql
+  go:
+    version: 1.16
+    module_name: inviqa/kafka-outbox-relay
+    modules:
+      before:
+        steps:
+          - /lib/install-rds-certs.sh
+          - go install github.com/securego/gosec/v2/cmd/gosec@latest
+  jenkins:
+    credentials:
+      my127ws_key: kafka-outbox-relay-my127ws-key
+  services:
+    app:
+      environment:
+        ENABLE_MIGRATIONS: "true"
+        KAFKA_HOST: = @('kafka.host')
+        DB_HOST: = @('database.host')
+        DB_PORT: = @('database.port')
+        DB_USER: = @('database.user')
+        DB_PASS: = @('database.pass')
+        DB_SCHEMA: = @('database.name')
+        DB_OUTBOX_TABLE: = @('database.table_name')
+        DB_DRIVER: = @('database.driver')
+    postgres:
+      version: 11.7
