@@ -25,7 +25,7 @@ func NewHealthzHandler(checkAddr []string, db Pinger) http.Handler {
 }
 
 func (h healthzHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	healthy := true
+	var healthy bool
 	if req.URL.Query().Get("readiness") == "1" {
 		healthy = h.checkServices() && h.checkDatabase()
 	} else {

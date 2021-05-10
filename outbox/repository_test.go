@@ -87,6 +87,8 @@ func TestNewRepositoryWithQueryProvider(t *testing.T) {
 func TestRepository_GetBatch(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
+	now := time.Now()
+	now2 := now.Add(time.Second * 1)
 
 	repo := NewRepositoryWithQueryProvider(db, &config.Config{DBOutboxTable: "outbox", BatchSize: 100}, &mockQueryProvider{})
 	mock.ExpectExec(`UPDATE outbox LIMIT 100`).
@@ -94,8 +96,8 @@ func TestRepository_GetBatch(t *testing.T) {
 
 	msgBatchId := "f58e7c8a-e0d2-47fb-8111-eb0ae02ea21e"
 	rows := sqlmock.NewRows(columns).
-		AddRow(123, msgBatchId, time.Now(), nil, "foo", "{}", "", 0).
-		AddRow(124, msgBatchId, time.Now(), nil, "bar", "{}", "", 1)
+		AddRow(123, msgBatchId, now, now2, "event.product", "foo", "{}", 0).
+		AddRow(124, msgBatchId, now, now2, "event.price", "bar", "{}", 1)
 
 	mock.ExpectQuery("SELECT.* FROM outbox").WillReturnRows(rows)
 
@@ -116,15 +118,38 @@ func TestRepository_GetBatch(t *testing.T) {
 		t.Error("empty batch ID received")
 	}
 
-	firstMsg := batch.Messages[0]
-	if firstMsg.Id != 123 || firstMsg.BatchId.String() != msgBatchId || firstMsg.Topic != "foo" || firstMsg.PushAttempts != 0 || firstMsg.Errored != false {
-		t.Errorf("the first message in the batch is not what we expected: %#v", firstMsg)
+	exp1 := &Message{
+		Id: 123,
+		PushStartedAt: sql.NullTime{
+			Time:  now,
+			Valid: true,
+		},
+		PushCompletedAt: sql.NullTime{
+			Time:  now2,
+			Valid: true,
+		},
+		PayloadJson:    []byte("foo"),
+		PayloadHeaders: []byte("{}"),
+		Topic:          "event.product",
 	}
 
-	secondMsg := batch.Messages[1]
-	if secondMsg.Id != 124 || secondMsg.BatchId.String() != msgBatchId || secondMsg.Topic != "bar" || secondMsg.PushAttempts != 1 || secondMsg.Errored != false {
-		t.Errorf("the second message in the batch is not what we expected: %#v", secondMsg)
+	exp2 := &Message{
+		Id: 123,
+		PushStartedAt: sql.NullTime{
+			Time:  now,
+			Valid: true,
+		},
+		PushCompletedAt: sql.NullTime{
+			Time:  now2,
+			Valid: true,
+		},
+		PayloadJson:    []byte("foo"),
+		PayloadHeaders: []byte("{}"),
+		Topic:          "event.product",
 	}
+
+	assertMessageIsAsExpected(exp1, batch.Messages[0], t)
+	assertMessageIsAsExpected(exp2, batch.Messages[0], t)
 }
 
 func TestRepository_GetBatchWithEmptyResult(t *testing.T) {
@@ -433,6 +458,13 @@ func createMockBatchOfSuccessfulMessagesOnly(batchId uuid.UUID) *Batch {
 
 	batch.Messages = successfulMsgs
 	return batch
+}
+
+func assertMessageIsAsExpected(exp, actual *Message, t *testing.T) {
+	exp.BatchId = actual.BatchId
+	if diff := deep.Equal(exp, actual); diff != nil {
+		t.Error(diff)
+	}
 }
 
 type mockQueryProvider struct {
