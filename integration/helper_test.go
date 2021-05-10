@@ -67,6 +67,7 @@ func returnErrorFromSyncProducerForMessage(msgBody string, err error) {
 	syncProducer.AddError(msgBody, err)
 }
 
+//gocyclo:ignore
 func consumeFromKafkaUntilMessagesReceived(exp []testkafka.MessageExpectation) *testkafka.ConsumerHandler {
 	doneCh := make(chan bool)
 	ctx, cancel := context.WithCancel(context.Background())
