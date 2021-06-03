@@ -40,7 +40,7 @@ To run the integration tests on your host machine, run `ws go test integration`.
 If you want to use this service to publish messages to Kafka from your application, then the following steps are needed:
 
 1. Create a new table in your application's database that matches the [defined schema](tools/docs/outbox-schema.md)
-1. Ensure that any events triggered by a database query in your application are issued in a transaction, and write a record to this new table containing the desired event payload for Kafka, inside that same transaction. This will give us ACID compliance for the event and the original data changes.
+1. Ensure that any events triggered by a database query in your application are issued in a transaction, and write a record to this new table containing the desired event payload for Kafka, inside that same transaction. This will give us ACID compliance for both the event **and** the original data changes in your application.
 1. Deploy this service, configured for your application's database. (TODO: add details on this when we know more!)
 
 ### Running the cleanup job

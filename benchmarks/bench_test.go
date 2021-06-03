@@ -5,6 +5,7 @@ package benchmarks
 import (
 	"database/sql"
 	"fmt"
+
 	benchkafka "inviqa/kafka-outbox-relay/benchmarks/kafka"
 	"inviqa/kafka-outbox-relay/config"
 	"inviqa/kafka-outbox-relay/kafka"
@@ -21,17 +22,7 @@ var (
 )
 
 func init() {
-	cfg = &config.Config{
-		DBHost:          "mysql",
-		DBPort:          3306,
-		DBUser:          "kafka-outbox-relay",
-		DBPass:          "kafka-outbox-relay",
-		DBSchema:        "kafka-outbox-relay",
-		DBDriver:        config.MySQL,
-		DBOutboxTable:   "kafka_outbox_test",
-		KafkaHost:       []string{"kafka:29092"},
-		PollFrequencyMs: 500,
-	}
+	cfg = createConfig()
 
 	db = data.NewDB(cfg)
 	ensureOutboxTableExists()
@@ -74,4 +65,20 @@ func insertOutboxMessages(msgs []*outbox.Message) {
 	if err != nil {
 		panic(fmt.Sprintf("error committing DB transaction: %s", err))
 	}
+}
+
+func createConfig() *config.Config {
+	cfg = &config.Config{
+		DBHost:          "localhost",
+		DBPort:          13306,
+		DBUser:          "kafka-outbox-relay",
+		DBPass:          "kafka-outbox-relay",
+		DBSchema:        "kafka-outbox-relay",
+		DBDriver:        config.MySQL,
+		DBOutboxTable:   "kafka_outbox_test",
+		KafkaHost:       []string{"localhost:9092"},
+		PollFrequencyMs: 500,
+	}
+
+	return cfg
 }
