@@ -1,6 +1,6 @@
 workspace('kafka-outbox-relay'):
   description: local workspace for kafka-outbox-relay.
-  harness: inviqa/go:v0.8.0
+  harness: inviqa/go:v0.9.0
   overlay: tools/workspace
 
 command('go test integration all'):
@@ -27,33 +27,10 @@ command('go test integration <db-driver>'):
     #!bash(workspace:/)|@
     passthru docker-compose exec -T -e LOG_LEVEL=error -e DB_DRIVER=${DB_DRIVER} app go test -count=1 -v --tags=integration ./integration/
 
-command('go bench'):
-  env:
-    COMPOSE_PROJECT_NAME: = @('namespace')
-  exec: |
-    #!bash(workspace:/)|@
-    passthru docker-compose exec -T -e LOG_LEVEL=error app go test --tags=benchmarks -count=5 -bench=. ./benchmarks
-
-command('go bench compare %'):
-  env:
-    COMPOSE_PROJECT_NAME: = @('namespace')
-    FILENAME: = input.argument('%')
-  exec: |
-    #!bash(workspace:/)|@
-    docker-compose exec -T -e LOG_LEVEL=error app go test --tags=benchmarks -count=5 -bench=. ./benchmarks > ./benchmarks/reports/${FILENAME}.txt
-
-command('go docker sec'):
-  env:
-    COMPOSE_PROJECT_NAME: = @('namespace')
-  exec: |
-    #!bash(workspace:/)|@
-    docker-compose exec -T app gosec -exclude-dir=.my127ws ./...
-
-
 attributes:
   app:
     binary: app
-    services: [kafka, mysql, postgres, zookeeper]
+    services: [kafka, mysql, postgres]
     bundle_certs: yes
   kafka:
     host: kafka:29092
@@ -90,3 +67,5 @@ attributes:
         DB_DRIVER: = @('database.driver')
     postgres:
       version: 11.7
+    mysql:
+      version: 8

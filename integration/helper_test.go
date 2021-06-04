@@ -50,10 +50,8 @@ func init() {
 	ensureOutboxTableExists()
 	purgeOutboxTable()
 
-	// todo: avoid allocation
-	r := outbox.NewRepository(db, cfg)
-	repo = r
-	publishedDeleter = r
+	repo = outbox.NewRepository(db, cfg)
+	publishedDeleter = repo
 	batchCh := make(chan *outbox.Batch, 10)
 
 	p := poller.New(repo, batchCh, context.Background())
@@ -153,10 +151,9 @@ func getConfig() *config.Config {
 		SidecarProxyUrl:  server.URL,
 		BatchSize:        250,
 		KafkaHost:        []string{"localhost:9092"},
-	}
-
-	if runInDocker {
-		cfg.KafkaHost = []string{"kafka:29092"}
+		DBUser:           "kafka-outbox-relay",
+		DBPass:           "kafka-outbox-relay",
+		DBSchema:         "kafka-outbox-relay",
 	}
 
 	envs := map[string]string{}
@@ -166,7 +163,7 @@ func getConfig() *config.Config {
 	}
 
 	var driver config.DbDriver
-	if envs["DB_DRIVER"] == "mysql" {
+	if envs["DB_DRIVER"] == string(config.MySQL) {
 		driver = config.MySQL
 		cfg.DBDriver = config.MySQL
 		cfg.DBPort = 13306
@@ -178,13 +175,10 @@ func getConfig() *config.Config {
 	if runInDocker {
 		cfg.DBHost = driver.String()
 		cfg.DBPort = cfg.DBPort - 1000
+		cfg.KafkaHost = []string{"kafka:29092"}
 	} else {
 		cfg.DBHost = "localhost"
 	}
-
-	cfg.DBUser = "kafka-outbox-relay"
-	cfg.DBPass = "kafka-outbox-relay"
-	cfg.DBSchema = "kafka-outbox-relay"
 
 	return cfg
 }

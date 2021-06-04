@@ -2,6 +2,10 @@ package main
 
 import (
 	"context"
+	"os"
+	"os/signal"
+	"syscall"
+
 	"inviqa/kafka-outbox-relay/config"
 	"inviqa/kafka-outbox-relay/job"
 	"inviqa/kafka-outbox-relay/kafka"
@@ -11,9 +15,6 @@ import (
 	"inviqa/kafka-outbox-relay/outbox/poller"
 	"inviqa/kafka-outbox-relay/outbox/processor"
 	"inviqa/kafka-outbox-relay/prometheus"
-	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/sirupsen/logrus"
 )
@@ -33,16 +34,19 @@ func main() {
 	}()
 
 	db := data.NewDB(cfg)
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Logger.WithError(err).Error("error closing database during shutdown process")
+		}
+	}()
+
 	repo := outbox.NewRepository(db, cfg)
 
 	switch {
 	case cfg.RunCleanup:
-		code := job.RunCleanup(repo, cfg)
-		os.Exit(code)
+		os.Exit(job.RunCleanup(repo, cfg))
 	case cfg.RunOptimize:
-		code := job.RunOptimize(db, cfg)
-		os.Exit(code)
+		os.Exit(job.RunOptimize(db, cfg))
 	default:
 		data.MigrateDatabase(db, cfg)
 		cleanup := startRelayServicePolling(cfg, repo, ctx)
@@ -54,6 +58,7 @@ func main() {
 	}
 }
 
+// todo: move to package
 func startRelayServicePolling(cfg *config.Config, repo outbox.Repository, ctx context.Context) func() {
 	log.Logger.WithFields(logrus.Fields{
 		"config": cfg,
@@ -61,8 +66,7 @@ func startRelayServicePolling(cfg *config.Config, repo outbox.Repository, ctx co
 
 	batchCh := make(chan *outbox.Batch, 10)
 	pub := kafka.NewPublisher(cfg.KafkaHost, kafka.NewSaramaConfig(cfg.TLSEnable, cfg.TLSSkipVerifyPeer))
-	p := poller.New(repo, batchCh, ctx)
-	go p.Poll(cfg.GetPollIntervalDurationInMs())
+	go poller.New(repo, batchCh, ctx).Poll(cfg.GetPollIntervalDurationInMs())
 
 	proc := processor.NewBatchProcessor(repo, pub, ctx)
 	for i := 0; i < cfg.WriteConcurrency; i++ {

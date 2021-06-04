@@ -7,29 +7,25 @@ import (
 	"time"
 )
 
-type Poller interface {
-	Poll(interval time.Duration)
-}
-
 type repository interface {
 	GetBatch() (*outbox.Batch, error)
 }
 
-func New(r repository, ch chan<- *outbox.Batch, ctx context.Context) Poller {
-	return &outboxPoller{
+func New(r repository, ch chan<- *outbox.Batch, ctx context.Context) *Poller {
+	return &Poller{
 		ch:   ch,
 		repo: r,
 		ctx:  ctx,
 	}
 }
 
-type outboxPoller struct {
+type Poller struct {
 	ch   chan<- *outbox.Batch
 	repo repository
 	ctx  context.Context
 }
 
-func (p outboxPoller) Poll(interval time.Duration) {
+func (p Poller) Poll(interval time.Duration) {
 	for {
 		batch, err := p.repo.GetBatch()
 		if err != nil {
