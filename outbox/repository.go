@@ -2,17 +2,14 @@ package outbox
 
 import (
 	"database/sql"
+	"time"
+
 	"inviqa/kafka-outbox-relay/config"
 	"inviqa/kafka-outbox-relay/log"
 	s "inviqa/kafka-outbox-relay/outbox/data/sql"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
-)
-
-const (
-	maxFailures = 3
 )
 
 var columns = []string{"id", "batch_id", "push_started_at", "push_completed_at", "topic", "payload_json", "payload_headers", "push_attempts"}
@@ -156,7 +153,7 @@ func (r Repository) GetTotalSize() (uint, error) {
 }
 
 func (r Repository) updateErroredMessage(tx *sql.Tx, msg *Message) {
-	q := r.queryProvider.MessageErroredUpdateSql(maxFailures)
+	q := r.queryProvider.MessageErroredUpdateSql(r.cfg.KafkaPublishAttempts)
 	_, err := tx.Exec(q, msg.ErrorReason.Error(), msg.Id)
 
 	log.Logger.WithFields(logrus.Fields{"query": q, "error_reason": msg.ErrorReason, "id": msg.Id}).Debug("updating errored message")

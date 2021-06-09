@@ -42,6 +42,7 @@ attributes:
     bundle_certs: yes
   kafka:
     host: kafka:29092
+    publish_attempts: 5
   database:
     host: mysql
     port: 3306
@@ -66,6 +67,7 @@ attributes:
       environment:
         ENABLE_MIGRATIONS: "true"
         KAFKA_HOST: = @('kafka.host')
+        KAFKA_PUBLISH_ATTEMPTS: =@('kafka.publish_attempts')
         DB_HOST: = @('database.host')
         DB_PORT: = @('database.port')
         DB_USER: = @('database.user')
