@@ -14,6 +14,7 @@ pipeline {
                 stage('go mod check') { steps { sh 'ws go docker mod check' } }
                 stage('go fmt') { steps { sh 'ws go docker fmt check' } }
                 stage('go test') { steps { sh 'ws go docker test' } }
+                stage('go integration test') { steps { sh 'ws go docker test integration mysql' } }
                 stage('go vet') { steps { sh 'ws go docker vet' } }
                 stage('go gocyclo') { steps { sh 'ws go docker gocyclo' } }
                 stage('go ineffassign') { steps { sh 'ws go docker ineffassign' } }

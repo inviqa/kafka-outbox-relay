@@ -174,7 +174,7 @@ func getConfig() *config.Config {
 
 	if runInDocker {
 		cfg.DBHost = driver.String()
-		cfg.DBPort = cfg.DBPort - 1000
+		cfg.DBPort = cfg.DBPort - 10000
 		cfg.KafkaHost = []string{"kafka:29092"}
 	} else {
 		cfg.DBHost = "localhost"
