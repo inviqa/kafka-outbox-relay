@@ -42,7 +42,7 @@ attributes:
     bundle_certs: yes
   kafka:
     host: kafka:29092
-    publish_attempts: 5
+    publish_attempts: 3
   database:
     host: mysql
     port: 3306

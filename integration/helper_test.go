@@ -6,6 +6,12 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"net/http/httptest"
+	"os"
+	"reflect"
+	"strings"
+	"time"
+
 	"inviqa/kafka-outbox-relay/config"
 	h "inviqa/kafka-outbox-relay/integration/http"
 	testkafka "inviqa/kafka-outbox-relay/integration/kafka"
@@ -15,11 +21,6 @@ import (
 	"inviqa/kafka-outbox-relay/outbox/data"
 	"inviqa/kafka-outbox-relay/outbox/poller"
 	"inviqa/kafka-outbox-relay/outbox/processor"
-	"net/http/httptest"
-	"os"
-	"reflect"
-	"strings"
-	"time"
 
 	"github.com/Shopify/sarama"
 )
@@ -145,15 +146,16 @@ func getConfig() *config.Config {
 	}
 
 	cfg := &config.Config{
-		EnableMigrations: true,
-		DBOutboxTable:    "kafka_outbox_test",
-		PollFrequencyMs:  500,
-		SidecarProxyUrl:  server.URL,
-		BatchSize:        250,
-		KafkaHost:        []string{"localhost:9092"},
-		DBUser:           "kafka-outbox-relay",
-		DBPass:           "kafka-outbox-relay",
-		DBSchema:         "kafka-outbox-relay",
+		EnableMigrations:     true,
+		DBOutboxTable:        "kafka_outbox_test",
+		PollFrequencyMs:      500,
+		SidecarProxyUrl:      server.URL,
+		KafkaPublishAttempts: 3,
+		BatchSize:            250,
+		KafkaHost:            []string{"localhost:9092"},
+		DBUser:               "kafka-outbox-relay",
+		DBPass:               "kafka-outbox-relay",
+		DBSchema:             "kafka-outbox-relay",
 	}
 
 	envs := map[string]string{}

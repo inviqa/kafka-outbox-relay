@@ -22,9 +22,9 @@ func (m PostgresQueryProvider) MessagesSuccessUpdateSql(idCount int) string {
 }
 
 func (m PostgresQueryProvider) MessageErroredUpdateSql(maxPushAttempts int) string {
-	q := `UPDATE %s SET error_reason = $1, push_started_at = NULL, batch_id = NULL, push_attempts = push_attempts + 1 WHERE id = $2`
+	q := `UPDATE %s SET error_reason = $1, errored = CASE WHEN push_attempts + 1 >= %d THEN 1 ELSE 0 END, push_started_at = NULL, batch_id = NULL, push_attempts = push_attempts + 1 WHERE id = $2`
 
-	return fmt.Sprintf(q, m.Table)
+	return fmt.Sprintf(q, m.Table, maxPushAttempts)
 }
 
 func (m PostgresQueryProvider) BatchCreationSql(batchSize int) string {

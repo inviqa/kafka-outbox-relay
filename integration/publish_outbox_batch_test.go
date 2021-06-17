@@ -4,10 +4,11 @@ package integration
 
 import (
 	"errors"
-	testkafka "inviqa/kafka-outbox-relay/integration/kafka"
-	"inviqa/kafka-outbox-relay/outbox"
 	"testing"
 	"time"
+
+	testkafka "inviqa/kafka-outbox-relay/integration/kafka"
+	"inviqa/kafka-outbox-relay/outbox"
 
 	"github.com/Shopify/sarama"
 	. "github.com/smartystreets/goconvey/convey"
@@ -99,11 +100,12 @@ func TestPublishOutboxBatchCorrectlyMarksFailedMessagesAsErrored(t *testing.T) {
 					Convey("And the errored messages should have been marked as failed", func() {
 						for _, m := range []*outbox.Message{msg1, msg3} {
 							actual := getOutboxMessage(m.Id)
+							So(actual.Errored, ShouldBeTrue)
 							So(actual.ErrorReason, ShouldNotBeNil)
 							So(actual.ErrorReason.Error(), ShouldEqual, "error producing message in Kafka: producer error")
 							So(actual.PushCompletedAt.Time.IsZero(), ShouldBeTrue)
 							So(actual.PushCompletedAt.Valid, ShouldBeFalse)
-							So(actual.PushAttempts, ShouldBeGreaterThan, 0)
+							So(actual.PushAttempts, ShouldEqual, 3) // See integration/helper_test.go:153
 						}
 					})
 				})
