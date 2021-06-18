@@ -162,9 +162,7 @@ func getConfig() *config.Config {
 		envs[pts[0]] = pts[1]
 	}
 
-	var driver config.DbDriver
 	if envs["DB_DRIVER"] == string(config.MySQL) {
-		driver = config.MySQL
 		cfg.DBDriver = config.MySQL
 		cfg.DBPort = 13306
 	} else {
@@ -173,7 +171,7 @@ func getConfig() *config.Config {
 	}
 
 	if runInDocker {
-		cfg.DBHost = driver.String()
+		cfg.DBHost = cfg.DBDriver.String()
 		cfg.DBPort = cfg.DBPort - 10000
 		cfg.KafkaHost = []string{"kafka:29092"}
 	} else {
