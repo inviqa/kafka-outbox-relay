@@ -3,7 +3,7 @@ workspace('kafka-outbox-relay'):
   harness: inviqa/go:v0.9.0
   overlay: tools/workspace
 
-command('go test integration docker all'):
+command('go test integration all'):
   env:
     COMPOSE_PROJECT_NAME: = @('namespace')
   exec: |
@@ -19,10 +19,9 @@ command('go test integration <db-driver>'):
     #!bash(workspace:/)|@
     LOG_LEVEL=error DB_DRIVER=${DB_DRIVER} go test -count=1 -v --tags=integration ./integration/
 
-command('go docker test integration all'):
+command('go test integration docker all'):
   env:
     COMPOSE_PROJECT_NAME: = @('namespace')
-    DB_DRIVER: = input.argument('db-driver')
   exec: |
     #!bash(workspace:/)|@
     passthru docker-compose exec -T -e GO_TEST_MODE=docker -e LOG_LEVEL=error -e DB_DRIVER=postgres app go test -count=1 -v --tags=integration ./integration/
