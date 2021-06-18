@@ -27,7 +27,7 @@ command('go test integration docker all'):
     passthru docker-compose exec -T -e GO_TEST_MODE=docker -e LOG_LEVEL=error -e DB_DRIVER=postgres app go test -count=1 -v --tags=integration ./integration/
     passthru docker-compose exec -T -e GO_TEST_MODE=docker -e LOG_LEVEL=error -e DB_DRIVER=mysql app go test -count=1 -v --tags=integration ./integration/
 
-command('go docker test integration <db-driver>'):
+command('go test integration docker <db-driver>'):
   env:
     COMPOSE_PROJECT_NAME: = @('namespace')
     DB_DRIVER: = input.argument('db-driver')
