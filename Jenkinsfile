@@ -36,7 +36,7 @@ pipeline {
             when {
                 not { triggeredBy 'TimerTrigger' }
                 anyOf {
-                    branch 'issue-2-add-publish-step'
+                    branch 'master'
                 }
             }
             steps {
