@@ -45,6 +45,7 @@ attributes:
       username: "= env('DOCKER_REGISTRY_CREDS_USR') ?: ''"
       password: "= env('DOCKER_REGISTRY_CREDS_PSW') ?: ''"
     repository: quay.io/inviqa_images/kafka-outbox-relay
+    tagPrefix: kafka-outbox-relay-
   kafka:
     host: kafka:29092
   database:
