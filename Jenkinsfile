@@ -36,7 +36,7 @@ pipeline {
             when {
                 not { triggeredBy 'TimerTrigger' }
                 anyOf {
-                    branch 'issue-6-add-k8s-job-configuration'
+                    branch 'issue-2-add-publish-step'
                 }
             }
             steps {
