@@ -29,21 +29,6 @@ pipeline {
                 sh 'ws build-prod'
             }
         }
-        stage('Publish') {
-            environment {
-                DOCKER_REGISTRY_CREDS = credentials('inviqa-quay-registry-credentials')
-            }
-            when {
-                not { triggeredBy 'TimerTrigger' }
-                anyOf {
-                    branch 'issue-6-add-k8s-job-configuration'
-                }
-            }
-            steps {
-                milestone(20)
-                sh 'ws app publish'
-            }
-        }
     }
     post {
         always {
