@@ -1,0 +1,52 @@
+{{- $service := .Values.docker.services.app -}}
+{{- if $service.cronjobs -}}
+{{- range $cronName, $cronConfig := $service.cronjobs }}
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: {{ $.Values.resourcePrefix }}{{ $cronName }}
+  labels:
+    app.kubernetes.io/component: {{ $cronName }}
+spec:
+  {{- pick $cronConfig "concurrencyPolicy" "failedJobsHistoryLimit" "schedule" "startingDeadlineSeconds" "successfulJobsHistoryLimit" "suspend" | toYaml | nindent 2 }}
+  jobTemplate:
+    metadata:
+      labels:
+        app.kubernetes.io/component: {{ $cronName }}
+    spec:
+      {{- $jobConfig := pick $cronConfig "activeDeadlineSeconds" "backoffLimit" "ttlSecondsAfterFinished" }}
+      {{- if $jobConfig }}
+      {{- $jobConfig | toYaml | nindent 6 }}
+      {{- end }}
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/component: {{ $cronName }}
+        spec:
+          restartPolicy: Never
+          containers:
+          - env:
+            {{- range $key, $value := $service.environment }}
+            {{- $tp := typeOf $value }}
+              - name: {{ $key | quote }}
+                value: {{ $value | quote }}
+            {{- end }}
+            {{- if $service.environment_secrets }}
+            envFrom:
+              - secretRef:
+                  name: {{ $.Values.resourcePrefix }}app
+            {{- end }}
+            image: {{ tpl $.Values.docker.image.app $ | quote }}
+            imagePullPolicy: Always
+            name: {{ $cronName }}
+            command: {{ $cronConfig.command | toJson}}
+            resources: {} 
+          imagePullSecrets:
+          - name: {{ $.Values.resourcePrefix }}image-pull-config
+          {{- if or $.Values.serviceAccount.create $.Values.serviceAccount.name }}
+          serviceAccountName: {{ $.Values.serviceAccount.name | default (print $.Values.resourcePrefix "acc") }}
+          {{- end }}
+          enableServiceLinks: false
+{{- end }}
+{{- end }}
