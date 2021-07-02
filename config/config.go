@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"inviqa/kafka-outbox-relay/log"
+	"net/url"
 	"time"
 
 	"github.com/alexflint/go-arg"
