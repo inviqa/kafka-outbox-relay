@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"inviqa/kafka-outbox-relay/log"
+	"net/url"
 	"time"
 
 	"github.com/alexflint/go-arg"
@@ -85,7 +86,7 @@ func (c *Config) GetDSN() string {
 				sslMode = "verify-full"
 			}
 		}
-		return fmt.Sprintf("%s://%s:%s@%s:%d/%s?sslmode=%s", c.DBDriver, c.DBUser, c.DBPass, c.DBHost, c.DBPort, c.DBSchema, sslMode)
+		return fmt.Sprintf("%s://%s@%s:%d/%s?sslmode=%s", c.DBDriver, url.UserPassword(c.DBUser, c.DBPass), c.DBHost, c.DBPort, c.DBSchema, sslMode)
 	default:
 		log.Logger.Fatalf("the DB driver configured (%s) is not supported", c.DBDriver)
 		return ""
