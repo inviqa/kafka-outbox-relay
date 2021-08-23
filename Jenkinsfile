@@ -29,6 +29,21 @@ pipeline {
                 sh 'ws build-prod'
             }
         }
+        stage('Publish') {
+            environment {
+                DOCKER_REGISTRY_CREDS = credentials('inviqa-quay-registry-credentials')
+            }
+            when {
+                not { triggeredBy 'TimerTrigger' }
+                anyOf {
+                    branch 'master'
+                }
+            }
+            steps {
+                milestone(20)
+                sh 'ws app publish'
+            }
+        }
     }
     post {
         always {
