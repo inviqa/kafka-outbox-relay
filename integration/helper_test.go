@@ -148,7 +148,7 @@ func getConfig() *config.Config {
 	cfg := &config.Config{
 		EnableMigrations:     true,
 		DBOutboxTable:        "kafka_outbox_test",
-		PollFrequencyMs:      500,
+		PollFrequencyMs:      1000,
 		SidecarProxyUrl:      server.URL,
 		KafkaPublishAttempts: 3,
 		BatchSize:            250,

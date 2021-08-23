@@ -19,6 +19,15 @@ command('go test integration <db-driver>'):
     #!bash(workspace:/)|@
     LOG_LEVEL=error DB_DRIVER=${DB_DRIVER} go test -count=1 -v --tags=integration ./integration/
 
+command('go test integration <db-driver> <test-name>'):
+  env:
+    COMPOSE_PROJECT_NAME: = @('namespace')
+    DB_DRIVER: = input.argument('db-driver')
+    TEST_NAME: = input.argument('test-name')
+  exec: |
+    #!bash(workspace:/)|@
+    LOG_LEVEL=debug DB_DRIVER=${DB_DRIVER} go test -count=1 -v --tags=integration ./integration/ -run "$TEST_NAME"
+
 command('go test integration docker all'):
   env:
     COMPOSE_PROJECT_NAME: = @('namespace')
