@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.0
 	github.com/Shopify/sarama v1.28.0
-	github.com/alexflint/go-arg v1.4.1
+	github.com/alexflint/go-arg v1.4.2
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/go-test/deep v1.0.7
 	github.com/golang-migrate/migrate/v4 v4.14.2-0.20201125065321-a53e6fc42574
