@@ -65,6 +65,7 @@ func TestPublishOutboxBatchCorrectlyMarksFailedMessagesAsErrored(t *testing.T) {
 			PayloadJson:    []byte(`{"foo": "bar"}`),
 			PayloadHeaders: []byte(`{"x-event-id": 1}`),
 			Topic:          "testProductUpdate",
+			PushAttempts:   2,
 		}
 		msg2 := &outbox.Message{
 			PayloadJson:    []byte(`{"foo": "baz"}`),
@@ -76,6 +77,7 @@ func TestPublishOutboxBatchCorrectlyMarksFailedMessagesAsErrored(t *testing.T) {
 			PayloadJson:    []byte(`{"foo": "buzz"}`),
 			PayloadHeaders: []byte(`{"x-event-id": 3}`),
 			Topic:          "testProductUpdate",
+			PushAttempts:   2,
 		}
 
 		returnErrorFromSyncProducerForMessage(string(msg1.PayloadJson), errors.New("producer error"))
