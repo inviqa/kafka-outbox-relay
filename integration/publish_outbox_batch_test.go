@@ -70,6 +70,7 @@ func TestPublishOutboxBatchCorrectlyMarksFailedMessagesAsErrored(t *testing.T) {
 			PayloadJson:    []byte(`{"foo": "baz"}`),
 			PayloadHeaders: []byte(`{"x-event-id": 2}`),
 			Topic:          "testProductUpdate",
+			PushAttempts:   2,
 		}
 		msg3 := &outbox.Message{
 			PayloadJson:    []byte(`{"foo": "buzz"}`),
@@ -95,7 +96,7 @@ func TestPublishOutboxBatchCorrectlyMarksFailedMessagesAsErrored(t *testing.T) {
 					So(actualMsg2.ErrorReason, ShouldBeNil)
 					So(actualMsg2.PushCompletedAt.Valid, ShouldBeTrue)
 					So(actualMsg2.PushCompletedAt.Time.IsZero(), ShouldBeFalse)
-					So(actualMsg2.PushAttempts, ShouldEqual, 1)
+					So(actualMsg2.PushAttempts, ShouldEqual, 3)
 
 					Convey("And the errored messages should have been marked as failed", func() {
 						for _, m := range []*outbox.Message{msg1, msg3} {
