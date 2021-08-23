@@ -2,12 +2,13 @@ package processor
 
 import (
 	"context"
-	"inviqa/kafka-outbox-relay/outbox"
-	"inviqa/kafka-outbox-relay/outbox/processor/test"
-	otest "inviqa/kafka-outbox-relay/outbox/test"
 	"runtime"
 	"testing"
 	"time"
+
+	"inviqa/kafka-outbox-relay/outbox"
+	"inviqa/kafka-outbox-relay/outbox/processor/test"
+	otest "inviqa/kafka-outbox-relay/outbox/test"
 
 	"github.com/google/uuid"
 )
@@ -219,7 +220,7 @@ func TestKafkaBatchProcessor_ListenAndProcessTerminatesWhenContextIsCancelled(t 
 
 	routines := runtime.NumGoroutine()
 	cancel()
-	time.Sleep(time.Millisecond * 1)
+	time.Sleep(time.Millisecond * 10)
 	routinesAfterCancel := runtime.NumGoroutine()
 
 	if (routines - 1) != routinesAfterCancel {
