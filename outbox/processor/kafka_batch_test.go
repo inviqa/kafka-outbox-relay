@@ -241,14 +241,21 @@ func TestKafkaBatchProcessor_ListenAndProcessTerminatesWhenContextIsCancelled(t 
 
 	routines := runtime.NumGoroutine()
 	cancel()
-	time.Sleep(time.Millisecond * 10)
-	routinesAfterCancel := runtime.NumGoroutine()
 
-	if (routines - 1) != routinesAfterCancel {
-		t.Errorf(
-			"after context was cancelled the number of goroutines should have decreased by 1 (before context.Cancel: %d, after cancel: %d)",
-			routines,
-			routinesAfterCancel,
-		)
+	var checks uint
+	for {
+		routinesAfterCancel := runtime.NumGoroutine()
+		if routinesAfterCancel < routines {
+			break
+		}
+		time.Sleep(time.Millisecond * 10)
+		if checks == 10 {
+			t.Errorf(
+				"after the context was cancelled the number of goroutines should have decreased by 1 (before context.Cancel: %d, after cancel: %d)",
+				routines,
+				routinesAfterCancel,
+			)
+		}
+		checks++
 	}
 }
