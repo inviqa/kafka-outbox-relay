@@ -5,7 +5,6 @@ package integration
 import (
 	"errors"
 	"testing"
-	"time"
 
 	testkafka "inviqa/kafka-outbox-relay/integration/kafka"
 	"inviqa/kafka-outbox-relay/outbox"
@@ -15,6 +14,8 @@ import (
 )
 
 func TestPublishOutboxBatchSuccessfullyPublishesToKafka(t *testing.T) {
+	purgeOutboxTable()
+
 	Convey("Given there are messages in the outbox to be processed", t, func() {
 		msg1 := &outbox.Message{
 			PayloadJson:    []byte(`{"foo": "bar"}`),
@@ -35,7 +36,7 @@ func TestPublishOutboxBatchSuccessfullyPublishesToKafka(t *testing.T) {
 		insertOutboxMessages([]*outbox.Message{msg1, msg2, msg3})
 
 		Convey("When the outbox relay service polls the database", func() {
-			time.Sleep(time.Millisecond * 500)
+			pollForMessages(1)
 			Convey("Then a batch of messages should have been sent to Kafka", func() {
 				cons := consumeFromKafkaUntilMessagesReceived([]testkafka.MessageExpectation{
 					{Msg: msg1, Headers: []*sarama.RecordHeader{{Key: []byte("x-event-id"), Value: []byte("1")}}},
@@ -86,7 +87,7 @@ func TestPublishOutboxBatchCorrectlyMarksFailedMessagesAsErrored(t *testing.T) {
 		insertOutboxMessages([]*outbox.Message{msg1, msg2, msg3})
 
 		Convey("When the outbox relay service polls the database", func() {
-			time.Sleep(time.Millisecond * 1000)
+			pollForMessages(1)
 			Convey("Then the batch of messages should have been sent to Kafka", func() {
 				cons := consumeFromKafkaUntilMessagesReceived([]testkafka.MessageExpectation{
 					{Msg: msg2, Headers: []*sarama.RecordHeader{{Key: []byte("x-event-id"), Value: []byte("2")}}},
@@ -108,7 +109,7 @@ func TestPublishOutboxBatchCorrectlyMarksFailedMessagesAsErrored(t *testing.T) {
 							So(actual.ErrorReason.Error(), ShouldEqual, "error producing message in Kafka: producer error")
 							So(actual.PushCompletedAt.Time.IsZero(), ShouldBeTrue)
 							So(actual.PushCompletedAt.Valid, ShouldBeFalse)
-							So(actual.PushAttempts, ShouldEqual, 3) // See integration/helper_test.go:153
+							So(actual.PushAttempts, ShouldBeGreaterThanOrEqualTo, 3) // See integration/helper_test.go:153
 						}
 					})
 				})

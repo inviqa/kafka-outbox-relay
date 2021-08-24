@@ -10,25 +10,38 @@ import (
 	"inviqa/kafka-outbox-relay/outbox/processor/test"
 	otest "inviqa/kafka-outbox-relay/outbox/test"
 
+	"github.com/go-test/deep"
 	"github.com/google/uuid"
 )
 
 func TestNewBatchProcessor(t *testing.T) {
+	deep.CompareUnexportedFields = true
+	defer func() {
+		deep.CompareUnexportedFields = false
+	}()
+
 	repo := otest.NewMockRepository()
 	pub := test.NewMockPublisher()
 
-	if p := NewBatchProcessor(repo, pub, context.Background()); p == nil {
-		t.Fatalf("reveived nil from NewBatchProcessor()")
+	exp := KafkaBatchProcessor{
+		repo:      repo,
+		publisher: pub,
+	}
+
+	if diff := deep.Equal(exp, NewBatchProcessor(repo, pub)); diff != nil {
+		t.Error(diff)
 	}
 }
 
 func TestKafkaBatchProcessor_ListenAndProcess(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	repo := otest.NewMockRepository()
 	pub := test.NewMockPublisher()
 	ch := make(chan *outbox.Batch)
 
-	proc := NewBatchProcessor(repo, pub, context.Background())
-	go proc.ListenAndProcess(ch)
+	proc := NewBatchProcessor(repo, pub)
+	go proc.ListenAndProcess(ctx, ch)
 
 	b1 := &outbox.Batch{
 		Id: uuid.New(),
@@ -80,12 +93,14 @@ func TestKafkaBatchProcessor_ListenAndProcess(t *testing.T) {
 }
 
 func TestKafkaBatchProcessor_ListenAndProcessWithPublishError(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	repo := otest.NewMockRepository()
 	pub := test.NewMockPublisher()
 	ch := make(chan *outbox.Batch)
 
-	proc := NewBatchProcessor(repo, pub, context.Background())
-	go proc.ListenAndProcess(ch)
+	proc := NewBatchProcessor(repo, pub)
+	go proc.ListenAndProcess(ctx, ch)
 
 	b1 := &outbox.Batch{
 		Id: uuid.New(),
@@ -132,12 +147,14 @@ func TestKafkaBatchProcessor_ListenAndProcessWithPublishError(t *testing.T) {
 }
 
 func TestKafkaBatchProcessor_ListenAndProcessIgnoresMessagesWithNoTopic(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	repo := otest.NewMockRepository()
 	pub := test.NewMockPublisher()
 	ch := make(chan *outbox.Batch)
 
-	proc := NewBatchProcessor(repo, pub, context.Background())
-	go proc.ListenAndProcess(ch)
+	proc := NewBatchProcessor(repo, pub)
+	go proc.ListenAndProcess(ctx, ch)
 
 	b1 := &outbox.Batch{
 		Id: uuid.New(),
@@ -175,12 +192,14 @@ func TestKafkaBatchProcessor_ListenAndProcessIgnoresMessagesWithNoTopic(t *testi
 }
 
 func TestKafkaBatchProcessor_ListenAndProcessWithEmptyBatch(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	repo := otest.NewMockRepository()
 	pub := test.NewMockPublisher()
 	ch := make(chan *outbox.Batch)
 
-	proc := NewBatchProcessor(repo, pub, context.Background())
-	go proc.ListenAndProcess(ch)
+	proc := NewBatchProcessor(repo, pub)
+	go proc.ListenAndProcess(ctx, ch)
 
 	b1 := &outbox.Batch{
 		Id:       uuid.New(),
@@ -197,12 +216,14 @@ func TestKafkaBatchProcessor_ListenAndProcessWithEmptyBatch(t *testing.T) {
 }
 
 func TestKafkaBatchProcessor_ListenAndProcessWithNilBatch(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	repo := otest.NewMockRepository()
 	pub := test.NewMockPublisher()
 	ch := make(chan *outbox.Batch)
 
-	proc := NewBatchProcessor(repo, pub, context.Background())
-	go proc.ListenAndProcess(ch)
+	proc := NewBatchProcessor(repo, pub)
+	go proc.ListenAndProcess(ctx, ch)
 
 	ch <- nil
 
@@ -215,8 +236,8 @@ func TestKafkaBatchProcessor_ListenAndProcessTerminatesWhenContextIsCancelled(t 
 	pub := test.NewMockPublisher()
 	ch := make(chan *outbox.Batch)
 
-	proc := NewBatchProcessor(repo, pub, ctx)
-	go proc.ListenAndProcess(ch)
+	proc := NewBatchProcessor(repo, pub)
+	go proc.ListenAndProcess(ctx, ch)
 
 	routines := runtime.NumGoroutine()
 	cancel()
