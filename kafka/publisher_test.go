@@ -39,6 +39,8 @@ func TestPublisher_PublishMessage(t *testing.T) {
 		PayloadJson:    []byte(`{"payload"}`),
 		PayloadHeaders: []byte(`{"x-event-id":"id"}`),
 		Topic:          "productUpdate",
+		PartitionKey:   "foo",
+		Key:            "bar",
 	}
 
 	err := pub.PublishMessage(msg)
@@ -54,7 +56,8 @@ func TestPublisher_PublishMessage(t *testing.T) {
 				Value: []byte("id"),
 			},
 		},
-		Value: sarama.ByteEncoder([]byte(`{"payload"}`)),
+		Key:   newMessageKey("bar", "foo"),
+		Value: sarama.ByteEncoder(`{"payload"}`),
 	}
 
 	if err := prod.MessageWasProduced("productUpdate", exp); err != nil {
@@ -67,20 +70,22 @@ func TestPublisher_PublishMessageWithNilHeaders(t *testing.T) {
 	pub := NewPublisherWithProducer(prod)
 
 	msg := &outbox.Message{
-		Id:          1,
-		PayloadJson: []byte(`{"payload"}`),
-		Topic:       "productUpdate",
+		Id:           1,
+		PayloadJson:  []byte(`{"payload"}`),
+		Topic:        "productUpdate",
+		PartitionKey: "buzz",
+		Key:          "bar",
 	}
 
-	err := pub.PublishMessage(msg)
-	if err != nil {
+	if err := pub.PublishMessage(msg); err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
 	exp := &sarama.ProducerMessage{
 		Topic:   "productUpdate",
 		Headers: []sarama.RecordHeader{},
-		Value:   sarama.ByteEncoder([]byte(`{"payload"}`)),
+		Value:   sarama.ByteEncoder(`{"payload"}`),
+		Key:     newMessageKey("bar", "buzz"),
 	}
 
 	if err := prod.MessageWasProduced("productUpdate", exp); err != nil {
@@ -88,13 +93,11 @@ func TestPublisher_PublishMessageWithNilHeaders(t *testing.T) {
 	}
 }
 
-func TestPublisher_PublishMessageWithEmptyHeaders(t *testing.T) {
-	cases := []string{"", "{}"}
-
+func TestPublisher_PublishMessageWithEmptyHeadersAndKey(t *testing.T) {
 	prod := test.NewMockSyncProducer()
 	pub := NewPublisherWithProducer(prod)
 
-	for _, val := range cases {
+	for _, val := range []string{"", "{}"} {
 		msg := &outbox.Message{
 			Id:             1,
 			PayloadHeaders: []byte(val),
@@ -102,15 +105,15 @@ func TestPublisher_PublishMessageWithEmptyHeaders(t *testing.T) {
 			Topic:          "productUpdate",
 		}
 
-		err := pub.PublishMessage(msg)
-		if err != nil {
+		if err := pub.PublishMessage(msg); err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
 
 		exp := &sarama.ProducerMessage{
 			Topic:   "productUpdate",
 			Headers: []sarama.RecordHeader{},
-			Value:   sarama.ByteEncoder([]byte(`{"payload"}`)),
+			Value:   sarama.ByteEncoder(`{"payload"}`),
+			Key:     nil,
 		}
 
 		if err := prod.MessageWasProduced("productUpdate", exp); err != nil {
@@ -130,8 +133,7 @@ func TestPublisher_PublishMessageWithIntHeaderValue(t *testing.T) {
 		Topic:          "productUpdate",
 	}
 
-	err := pub.PublishMessage(msg)
-	if err != nil {
+	if err := pub.PublishMessage(msg); err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
@@ -143,7 +145,7 @@ func TestPublisher_PublishMessageWithIntHeaderValue(t *testing.T) {
 				Value: []byte("1"),
 			},
 		},
-		Value: sarama.ByteEncoder([]byte(`{"payload"}`)),
+		Value: sarama.ByteEncoder(`{"payload"}`),
 	}
 
 	if err := prod.MessageWasProduced("productUpdate", exp); err != nil {
@@ -162,8 +164,7 @@ func TestPublisher_PublishMessageWithHeadersUnmarshalError(t *testing.T) {
 		Topic:          "productUpdate",
 	}
 
-	err := pub.PublishMessage(msg)
-	if err == nil {
+	if err := pub.PublishMessage(msg); err == nil {
 		t.Error("expected an error but got nil")
 	}
 }
@@ -181,8 +182,7 @@ func TestPublisher_PublishMessageWithSendError(t *testing.T) {
 		Topic:          "productUpdate",
 	}
 
-	err := pub.PublishMessage(msg)
-	if err == nil {
+	if err := pub.PublishMessage(msg); err == nil {
 		t.Error("expected an error but got nil")
 	}
 }

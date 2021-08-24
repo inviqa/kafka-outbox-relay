@@ -7,7 +7,7 @@ import (
 type MessageKey struct {
 	Key                  string
 	PartitionKey         string
-	sarama.StringEncoder // TODO: consider byte encoder
+	sarama.StringEncoder
 }
 
 func newMessageKey(key, partitionKey string) MessageKey {

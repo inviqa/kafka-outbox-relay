@@ -42,11 +42,21 @@ func (p Publisher) PublishMessage(m *outbox.Message) error {
 		return wrapErr
 	}
 
+	// if there is no Key value on the message then we do not want to
+	// set any message key on the sarama.ProducerMessage, regardless of
+	// whether there was a PartitionKey, which is an optional field
+	var mk sarama.Encoder
+	if m.Key == "" {
+		mk = nil
+	} else {
+		mk = newMessageKey(m.Key, m.PartitionKey)
+	}
+
 	partition, offset, err := p.producer.SendMessage(&sarama.ProducerMessage{
 		Topic:   m.Topic,
 		Headers: headers,
 		Value:   sarama.ByteEncoder(m.PayloadJson),
-		Key:     newMessageKey(m.Key, m.PartitionKey),
+		Key:     mk,
 	})
 
 	if err != nil {
