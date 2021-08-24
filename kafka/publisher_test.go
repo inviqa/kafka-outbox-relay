@@ -2,20 +2,31 @@ package kafka
 
 import (
 	"errors"
+	"testing"
+
 	"inviqa/kafka-outbox-relay/kafka/test"
 	"inviqa/kafka-outbox-relay/outbox"
-	"testing"
 
 	"github.com/Shopify/sarama"
 	"github.com/Shopify/sarama/mocks"
+	"github.com/go-test/deep"
 )
 
 func TestNewPublisherWithProducer(t *testing.T) {
-	prod := mocks.NewSyncProducer(t, NewSaramaConfig(false, false))
-	pub := NewPublisherWithProducer(prod)
+	deep.CompareUnexportedFields = true
+	deep.MaxDepth = 2
+	defer func() {
+		deep.CompareUnexportedFields = false
+		deep.MaxDepth = 10
+	}()
 
-	if pub == nil {
-		t.Fatal("got nil from NewPublisherWithProducer(), expect a Publisher")
+	prod := mocks.NewSyncProducer(t, NewSaramaConfig(false, false))
+	exp := Publisher{
+		producer: prod,
+	}
+
+	if diff := deep.Equal(exp, NewPublisherWithProducer(prod)); diff != nil {
+		t.Error(diff)
 	}
 }
 

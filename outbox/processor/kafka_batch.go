@@ -3,8 +3,8 @@ package processor
 import (
 	"context"
 	"errors"
+	"io"
 
-	"inviqa/kafka-outbox-relay/kafka"
 	"inviqa/kafka-outbox-relay/log"
 	"inviqa/kafka-outbox-relay/outbox"
 
@@ -15,7 +15,12 @@ type repository interface {
 	CommitBatch(batch *outbox.Batch)
 }
 
-func NewBatchProcessor(r repository, p kafka.Publisher) KafkaBatchProcessor {
+type publisher interface {
+	io.Closer
+	PublishMessage(m *outbox.Message) error
+}
+
+func NewBatchProcessor(r repository, p publisher) KafkaBatchProcessor {
 	return KafkaBatchProcessor{
 		repo:      r,
 		publisher: p,
@@ -24,7 +29,7 @@ func NewBatchProcessor(r repository, p kafka.Publisher) KafkaBatchProcessor {
 
 type KafkaBatchProcessor struct {
 	repo      repository
-	publisher kafka.Publisher
+	publisher publisher
 }
 
 func (k KafkaBatchProcessor) ListenAndProcess(ctx context.Context, batches <-chan *outbox.Batch) {

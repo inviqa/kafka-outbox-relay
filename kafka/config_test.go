@@ -29,4 +29,9 @@ func TestNewSaramaConfig(t *testing.T) {
 	if cfg.Net.TLS.Config != nil && cfg.Net.TLS.Config.InsecureSkipVerify {
 		t.Error("expected TLS verification to be enabled")
 	}
+
+	ptner := cfg.Producer.Partitioner("foo")
+	if _, ok := ptner.(OutboxPartitioner); !ok {
+		t.Error("expected kafka.OutboxPartitioner, but did not get one")
+	}
 }

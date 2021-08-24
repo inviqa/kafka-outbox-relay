@@ -22,4 +22,6 @@ type Message struct {
 	PushAttempts    int
 	Errored         bool
 	ErrorReason     error
+	Key             string
+	PartitionKey    string
 }
