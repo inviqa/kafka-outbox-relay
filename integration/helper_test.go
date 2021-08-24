@@ -53,13 +53,6 @@ func init() {
 
 	repo = outbox.NewRepository(db, cfg)
 	publishedDeleter = repo
-	batchCh := make(chan *outbox.Batch, 10)
-
-	p := poller.New(repo, batchCh, context.Background())
-	go p.Poll(cfg.GetPollIntervalDurationInMs())
-
-	proc := processor.NewBatchProcessor(repo, pub, context.Background())
-	go proc.ListenAndProcess(batchCh)
 }
 
 func returnErrorFromSyncProducerForMessage(msgBody string, err error) {
@@ -148,7 +141,7 @@ func getConfig() *config.Config {
 	cfg := &config.Config{
 		EnableMigrations:     true,
 		DBOutboxTable:        "kafka_outbox_test",
-		PollFrequencyMs:      500,
+		PollFrequencyMs:      1000,
 		SidecarProxyUrl:      server.URL,
 		KafkaPublishAttempts: 3,
 		BatchSize:            250,
@@ -181,4 +174,16 @@ func getConfig() *config.Config {
 	}
 
 	return cfg
+}
+
+func pollForMessages(expBatches int) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*10*time.Duration(expBatches))
+	defer cancel()
+	batchCh := make(chan *outbox.Batch, 10)
+
+	p := poller.New(repo, batchCh, context.Background())
+	go p.Poll(time.Millisecond * 8)
+
+	proc := processor.NewBatchProcessor(repo, pub)
+	proc.ListenAndProcess(ctx, batchCh)
 }

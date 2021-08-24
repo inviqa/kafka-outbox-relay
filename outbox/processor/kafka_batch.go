@@ -3,6 +3,7 @@ package processor
 import (
 	"context"
 	"errors"
+
 	"inviqa/kafka-outbox-relay/kafka"
 	"inviqa/kafka-outbox-relay/log"
 	"inviqa/kafka-outbox-relay/outbox"
@@ -10,29 +11,23 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type BatchProcessor interface {
-	ListenAndProcess(batches <-chan *outbox.Batch)
-}
-
 type repository interface {
 	CommitBatch(batch *outbox.Batch)
 }
 
-func NewBatchProcessor(r repository, p kafka.Publisher, ctx context.Context) BatchProcessor {
-	return &kafkaBatchProcessor{
+func NewBatchProcessor(r repository, p kafka.Publisher) KafkaBatchProcessor {
+	return KafkaBatchProcessor{
 		repo:      r,
 		publisher: p,
-		ctx:       ctx,
 	}
 }
 
-type kafkaBatchProcessor struct {
+type KafkaBatchProcessor struct {
 	repo      repository
 	publisher kafka.Publisher
-	ctx       context.Context
 }
 
-func (k kafkaBatchProcessor) ListenAndProcess(batches <-chan *outbox.Batch) {
+func (k KafkaBatchProcessor) ListenAndProcess(ctx context.Context, batches <-chan *outbox.Batch) {
 	for {
 		select {
 		case b := <-batches:
@@ -54,7 +49,7 @@ func (k kafkaBatchProcessor) ListenAndProcess(batches <-chan *outbox.Batch) {
 			}
 			k.repo.CommitBatch(b)
 			break
-		case <-k.ctx.Done():
+		case <-ctx.Done():
 			return
 		}
 	}

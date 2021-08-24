@@ -1,6 +1,6 @@
 workspace('kafka-outbox-relay'):
   description: local workspace for kafka-outbox-relay.
-  harness: inviqa/go:v0.9.0
+  harness: inviqa/go:v0.10
   overlay: tools/workspace
 
 command('go test integration all'):

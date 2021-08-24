@@ -5,14 +5,15 @@ package integration
 import (
 	"database/sql"
 	"fmt"
-	testkafka "inviqa/kafka-outbox-relay/integration/kafka"
-	"inviqa/kafka-outbox-relay/outbox"
 	"testing"
 	"time"
 
 	"github.com/Shopify/sarama"
 	"github.com/google/uuid"
 	. "github.com/smartystreets/goconvey/convey"
+
+	testkafka "inviqa/kafka-outbox-relay/integration/kafka"
+	"inviqa/kafka-outbox-relay/outbox"
 )
 
 func TestAbandonedMessagesAreCorrectlyPublishedAgain(t *testing.T) {
@@ -42,7 +43,7 @@ func TestAbandonedMessagesAreCorrectlyPublishedAgain(t *testing.T) {
 			insertOutboxMessages([]*outbox.Message{msg1, msg2})
 
 			Convey("When the outbox relay service polls the database", func() {
-				time.Sleep(time.Millisecond * 2000)
+				pollForMessages(1)
 				Convey("Then the batch of messages should have been sent to Kafka", func() {
 					cons := consumeFromKafkaUntilMessagesReceived([]testkafka.MessageExpectation{
 						{Msg: msg1, Headers: []*sarama.RecordHeader{}},
