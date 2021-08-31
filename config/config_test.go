@@ -121,7 +121,7 @@ func TestConfig_GetDSN(t *testing.T) {
 				TLSEnable:         true,
 				TLSSkipVerifyPeer: true,
 			},
-			want: "user:pass@tcp(host:3306)/db-name?parseTime=true&tls=skip-verify",
+			want: "user:pass@tcp(host:3306)/db-name?parseTime=true&tls=skip-verify&multiStatements=true",
 		},
 		{
 			name: "generated DSN for postgres driver",

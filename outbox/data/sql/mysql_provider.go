@@ -31,7 +31,7 @@ func (m MysqlQueryProvider) BatchCreationSql(batchSize int) string {
 }
 
 func (m MysqlQueryProvider) BatchFetchSql() string {
-	return fmt.Sprintf(`SELECT %s FROM %s WHERE batch_id = ?`, strings.Join(m.Columns, ", "), m.Table)
+	return fmt.Sprintf(`SELECT %s FROM %s WHERE batch_id = ?`, strings.Join(m.escapeColumns(), ", "), m.Table)
 }
 
 func (m MysqlQueryProvider) DeletePublishedMessagesSql() string {
@@ -44,4 +44,13 @@ func (m MysqlQueryProvider) GetQueueSizeSql() string {
 
 func (m MysqlQueryProvider) GetTotalSizeSql() string {
 	return fmt.Sprintf("SELECT COUNT(*) FROM %s", m.Table)
+}
+
+func (m MysqlQueryProvider) escapeColumns() []string {
+	var escaped []string
+	for _, c := range m.Columns {
+		escaped = append(escaped, "`"+c+"`")
+	}
+
+	return escaped
 }

@@ -12,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var columns = []string{"id", "batch_id", "push_started_at", "push_completed_at", "topic", "payload_json", "payload_headers", "push_attempts"}
+var columns = []string{"id", "batch_id", "push_started_at", "push_completed_at", "topic", "payload_json", "payload_headers", "push_attempts", "key", "partition_key"}
 
 type queryProvider interface {
 	BatchCreationSql(batchSize int) string
@@ -66,7 +66,7 @@ func (r Repository) GetBatch() (*Batch, error) {
 
 	for rows.Next() {
 		msg := &Message{}
-		err := rows.Scan(&msg.Id, &msg.BatchId, &msg.PushStartedAt, &msg.PushCompletedAt, &msg.Topic, &msg.PayloadJson, &msg.PayloadHeaders, &msg.PushAttempts)
+		err := rows.Scan(&msg.Id, &msg.BatchId, &msg.PushStartedAt, &msg.PushCompletedAt, &msg.Topic, &msg.PayloadJson, &msg.PayloadHeaders, &msg.PushAttempts, &msg.Key, &msg.PartitionKey)
 		if err != nil {
 			return nil, err
 		}

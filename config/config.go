@@ -78,7 +78,7 @@ func (c *Config) GetDSN() string {
 				tls = "true"
 			}
 		}
-		return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true&tls=%s", c.DBUser, c.DBPass, c.DBHost, c.DBPort, c.DBSchema, tls)
+		return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true&tls=%s&multiStatements=true", c.DBUser, c.DBPass, c.DBHost, c.DBPort, c.DBSchema, tls)
 	case Postgres:
 		sslMode := "disable"
 		if c.TLSEnable {

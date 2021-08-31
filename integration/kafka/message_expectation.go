@@ -9,4 +9,5 @@ import (
 type MessageExpectation struct {
 	Msg     *outbox.Message
 	Headers []*sarama.RecordHeader
+	Key     []byte
 }

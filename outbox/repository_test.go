@@ -4,10 +4,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"inviqa/kafka-outbox-relay/config"
-	s "inviqa/kafka-outbox-relay/outbox/data/sql"
 	"testing"
 	"time"
+
+	"inviqa/kafka-outbox-relay/config"
+	s "inviqa/kafka-outbox-relay/outbox/data/sql"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/go-test/deep"
@@ -96,8 +97,8 @@ func TestRepository_GetBatch(t *testing.T) {
 
 	msgBatchId := "f58e7c8a-e0d2-47fb-8111-eb0ae02ea21e"
 	rows := sqlmock.NewRows(columns).
-		AddRow(123, msgBatchId, now, now2, "event.product", "foo", "{}", 0).
-		AddRow(124, msgBatchId, now, now2, "event.price", "bar", "{}", 1)
+		AddRow(123, msgBatchId, now, now2, "event.product", "foo", "{}", 0, "key-0", "partition-key-0").
+		AddRow(124, msgBatchId, now, now2, "event.price", "bar", "{}", 1, "key-1", "partition-key-1")
 
 	mock.ExpectQuery("SELECT.* FROM outbox").WillReturnRows(rows)
 
@@ -131,10 +132,12 @@ func TestRepository_GetBatch(t *testing.T) {
 		PayloadJson:    []byte("foo"),
 		PayloadHeaders: []byte("{}"),
 		Topic:          "event.product",
+		Key:            "key-0",
+		PartitionKey:   "partition-key-0",
 	}
 
 	exp2 := &Message{
-		Id: 123,
+		Id: 124,
 		PushStartedAt: sql.NullTime{
 			Time:  now,
 			Valid: true,
@@ -143,13 +146,16 @@ func TestRepository_GetBatch(t *testing.T) {
 			Time:  now2,
 			Valid: true,
 		},
-		PayloadJson:    []byte("foo"),
+		PayloadJson:    []byte("bar"),
 		PayloadHeaders: []byte("{}"),
-		Topic:          "event.product",
+		PushAttempts:   1,
+		Topic:          "event.price",
+		Key:            "key-1",
+		PartitionKey:   "partition-key-1",
 	}
 
 	assertMessageIsAsExpected(exp1, batch.Messages[0], t)
-	assertMessageIsAsExpected(exp2, batch.Messages[0], t)
+	assertMessageIsAsExpected(exp2, batch.Messages[1], t)
 }
 
 func TestRepository_GetBatchWithEmptyResult(t *testing.T) {
