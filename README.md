@@ -39,9 +39,13 @@ To run the integration tests on your host machine, run `ws go test integration`.
 
 If you want to use this service to publish messages to Kafka from your application, then the following steps are needed:
 
-1. Create a new table in your application's database that matches the [defined schema](tools/docs/outbox-schema.md)
-1. Ensure that any events triggered by a database query in your application are issued in a transaction, and write a record to this new table containing the desired event payload for Kafka, inside that same transaction. This will give us ACID compliance for both the event **and** the original data changes in your application.
-1. Deploy this service, configured for your application's database (see configuration below)
+1. Familiarise yourself with the [defined schema](tools/docs/outbox-schema.md) of the outbox table.
+2. Ensure that any events triggered by a database query in your application are issued in a transaction, and write a record to this new table containing the following columns:
+    * `topic`
+    * `payload_json`
+    * `key` and `partition_key` (both optional, see [message keys](tools/docs/message-keys.md))
+4. desired event payload for Kafka, inside that same transaction. This will give us ACID compliance for both the event **and** the original data changes in your application.
+5. Deploy this service, configured for your application's database (see configuration below)
 
 >_NOTE: This outbox relay is designed to run for a single application. For example, if you run two different applications that both produce messages in an outbox table, then you will need 2 deployments of this service, each one configured accordingly._
 
@@ -51,7 +55,7 @@ There are several environment variables available in this service that can be us
 
 | Environment Variable | Description                                                                                                                                                                                                                                                                                                              |
 |----------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| ENABLE_MIGRATIONS    | Whether to automatically run database migrations in the outbox table. **DO NOT** enable this option as database migrations may unintentionally break your application's ability to store messages in the outbox. Instead, always make sure that your application creating the outbox messages sets up the schema itself. |
+| SKIP_MIGRATIONS      | Whether to skip executing database migrations on the outbox table. By default, this is false, and should usually be OK for most cases. If you skip migrations then you will be at risk of updates to this relay service not behaving as expected. |
 | DB_HOST              | The database host where the outbox table resides.                                                                                                                                                                                                                                                                        |
 | DB_PORT              | Database port.                                                                                                                                                                                                                                                                                                           |
 | DB_USER              | Database user.                                                                                                                                                                                                                                                                                                           |

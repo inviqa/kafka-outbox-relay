@@ -140,7 +140,7 @@ func getConfig() *config.Config {
 	}
 
 	cfg := &config.Config{
-		EnableMigrations:     true,
+		SkipMigrations:       true,
 		DBOutboxTable:        "kafka_outbox_test",
 		PollFrequencyMs:      1000,
 		SidecarProxyUrl:      server.URL,

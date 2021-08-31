@@ -25,7 +25,7 @@ var (
 func MigrateDatabase(db *sql.DB, cfg *config.Config) {
 	log.Logger.Info("checking database migrations")
 
-	if !cfg.EnableMigrations {
+	if !cfg.SkipMigrations {
 		log.Logger.Info("skipping database migrations because they are disabled")
 		return
 	}

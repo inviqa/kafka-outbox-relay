@@ -12,11 +12,13 @@ In each application that wants to use the outbox relay service, there needs to b
 | push_completed_at | datetime, nullable      | no                  | When the push to Kafka was completed for this message                   |
 | topic             | string                  | yes                 | The topic to publish this message to in Kafka                           |
 | payload_json      | text                    | yes                 | The raw JSON payload to send to Kafka                                   |
-| payload_headers   | text                    | no                  | JSON serialized representation of the payload headers to send to Kafka. |
+| payload_headers   | text                    | no, default: ''     | JSON serialized representation of the payload headers to send to Kafka. |
 | push_attempts     | int                     | no, default: 0      | Number of attempts so far trying to push this message to Kafka.         |
+| key               | string                  | no, default: ''     | The message key stored in produced Kafka message.                       |
+| partition_key     | string                  | no, default: ''     | The key used when determining which partition the message should be sent to. If empty, then "key" is used instead |
 | errored           | int                     | no, default: 0      | If the message has exceeded the maximum push_attempts, this will be 1   |
-| error_reason      | string                  | no                  | The reason for the last error on this message                           |
-| created_at        | datetime                | yes                 | When this record was created                                            |
+| error_reason      | string                  | no, default: ''     | The reason for the last error on this message                           |
+| created_at        | datetime                | no, default: `now()`  | When this record was created                                            |
 
 ### Required values
 
@@ -24,6 +26,6 @@ In the schema description above, columns where a value is required from the appl
 
 ### Indexes
 
-Aside from the primary key, there should be indexes placed on the following columns, to improve performance of outbox relay service:
+Aside from the primary key, there are indexes placed on the following columns, to improve performance of outbox relay service:
 
 * `push_completed_at`, non-unique (used by the relay service to determine the number of messages pending publish)

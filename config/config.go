@@ -24,7 +24,7 @@ var supportedDbTypes = map[DbDriver]bool{
 }
 
 type Config struct {
-	EnableMigrations     bool     `arg:"--enable-migrations,env:ENABLE_MIGRATIONS"`
+	SkipMigrations       bool     `arg:"--skip-migrations,env:SKIP_MIGRATIONS"`
 	DBHost               string   `arg:"--db-host,env:DB_HOST,required"`
 	DBPort               uint32   `arg:"--db-port,env:DB_PORT,required"`
 	DBUser               string   `arg:"--db-user,env:DB_USER,required"`
@@ -46,13 +46,9 @@ type Config struct {
 
 func NewConfig() (*Config, error) {
 	c := &Config{
-		RunCleanup:        false,
-		EnableMigrations:  false,
 		WriteConcurrency:  1,
 		PollFrequencyMs:   500,
 		BatchSize:         250,
-		TLSEnable:         false,
-		TLSSkipVerifyPeer: false,
 	}
 	arg.MustParse(c)
 
@@ -101,7 +97,7 @@ func (c *Config) GetDependencySystemAddresses() []string {
 
 func (c Config) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]interface{}{
-		"EnableMigrations":     c.EnableMigrations,
+		"SkipMigrations":       c.SkipMigrations,
 		"DBHost":               c.DBHost,
 		"DBPort":               c.DBPort,
 		"DBUser":               c.DBUser,

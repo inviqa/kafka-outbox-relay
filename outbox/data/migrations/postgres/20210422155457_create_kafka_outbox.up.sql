@@ -11,3 +11,5 @@ CREATE TABLE IF NOT EXISTS kafka_outbox(
     error_reason VARCHAR (255) NOT NULL DEFAULT '',
     created_at timestamp DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX outbox_push_completed_at ON kafka_outbox(push_completed_at);
