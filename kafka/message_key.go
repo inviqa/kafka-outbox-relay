@@ -7,11 +7,11 @@ import (
 type MessageKey struct {
 	// Key represents the actual key that is stored on the message in Kafka.
 	// It is used by Kafka when doing certain things, like log compaction.
-	Key                  string
+	Key string
 	// PartitionKey is used to determine what partition this message will be
 	// sent to in the topic. This can be empty, and if it is, the Key field
 	// will be used instead. See KeyForPartitioning.
-	PartitionKey         string
+	PartitionKey string
 	sarama.StringEncoder
 }
 
@@ -30,8 +30,8 @@ func (mk MessageKey) KeyForPartitioning() string {
 
 func newMessageKey(key, partitionKey string) MessageKey {
 	return MessageKey{
-		Key:          key,
-		PartitionKey: partitionKey,
+		Key:           key,
+		PartitionKey:  partitionKey,
 		StringEncoder: sarama.StringEncoder(key),
 	}
 }
