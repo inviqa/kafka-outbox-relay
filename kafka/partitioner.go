@@ -26,23 +26,15 @@ func (o OutboxPartitioner) Partition(message *sarama.ProducerMessage, numPartiti
 		return o.hashPartitioner.Partition(message, numPartitions)
 	}
 
-	var key string
-	if mk.PartitionKey == "" {
-		key = mk.Key
-	} else {
-		key = mk.PartitionKey
-	}
-
 	// set the key on the message temporarily and allow the hashPartitioner to
 	// determine the partition for us, we will revert it back before we proceed
 	// in case the sarama module decides to mutate the message in its hashPartitioner
 	// implementation in the future
-	message.Key = sarama.StringEncoder(key)
+	message.Key = sarama.StringEncoder(mk.KeyForPartitioning())
 
 	ptn, err := o.hashPartitioner.Partition(message, numPartitions)
 
-	// reset the message key back to what it was originally, just in case the sarama
-	// module decides to mutate it in a future version
+	// reset the message key back to what it was originally
 	message.Key = mk
 
 	return ptn, err
