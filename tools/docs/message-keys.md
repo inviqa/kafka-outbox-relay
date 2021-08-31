@@ -26,8 +26,8 @@ Kafka only guarantees the order of messages within a single topic partition. Whe
 
 Let's consider the example of product update and delete events sent to a single `event.product` topic. We want to use the product's SKU when determining what partition the message should be sent to. Additionally, if [log compaction] runs in the Kafka broker then we want to make sure that we retain at least the latest product update **and** product delete event to avoid any important event data loss. To do this, we decide to include a letter prefix in the `key` to indicate whether it was a delete event or an update event, so we end up with values like this:
 
-1. `productUpdated` event for product with identifier of SKU-123: `<key: "UPDATE-SKU-123", partition_key:"SKU-123"`
-1. `productDeleted` event for product with identifier of SKU-123: `<key: "DELETE-SKU-123", partition_key:"SKU-123"`
+1. `productUpdated` event for product with identifier of SKU-123: `<key: "UPDATE-SKU-123", partition_key:"SKU-123">`
+1. `productDeleted` event for product with identifier of SKU-123: `<key: "DELETE-SKU-123", partition_key:"SKU-123">`
 
 The outcome here is two-fold:
 
