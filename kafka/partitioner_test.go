@@ -37,6 +37,7 @@ func TestNewOutboxPartitionerWithCustomPartitioner(t *testing.T) {
 	}
 }
 
+//gocyclo:ignore
 func TestOutboxPartitioner_Partition(t *testing.T) {
 	t.Run("partition key is used on message key", func(t *testing.T) {
 		t.Parallel()

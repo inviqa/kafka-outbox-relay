@@ -13,7 +13,6 @@ require (
 	github.com/google/uuid v1.2.0
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
-	github.com/jackc/pgconn v1.8.1 // indirect
 	github.com/jackc/pgproto3/v2 v2.0.7 // indirect
 	github.com/jackc/pgx/v4 v4.11.0
 	github.com/johejo/golang-migrate-extra v0.0.0-20210217013041-51a992e50d16
