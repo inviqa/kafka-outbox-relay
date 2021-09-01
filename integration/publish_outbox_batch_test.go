@@ -20,16 +20,21 @@ func TestPublishOutboxBatchSuccessfullyPublishesToKafka(t *testing.T) {
 		msg1 := &outbox.Message{
 			PayloadJson:    []byte(`{"foo": "bar"}`),
 			PayloadHeaders: []byte(`{"x-event-id": 1}`),
+			PartitionKey:   "foo",
+			Key:            "bar",
 			Topic:          "testProductUpdate",
 		}
 		msg2 := &outbox.Message{
 			PayloadJson:    []byte(`{"foo": "baz"}`),
 			PayloadHeaders: []byte(`{"x-event-id": 2}`),
+			PartitionKey:   "foo",
+			Key:            "bar",
 			Topic:          "testProductUpdate",
 		}
 		msg3 := &outbox.Message{
 			PayloadJson:    []byte(`{"foo": "buzz"}`),
 			PayloadHeaders: []byte(`{"x-event-id": 3}`),
+			Key:            "buzz",
 			Topic:          "testProductUpdate",
 		}
 
@@ -39,9 +44,9 @@ func TestPublishOutboxBatchSuccessfullyPublishesToKafka(t *testing.T) {
 			pollForMessages(1)
 			Convey("Then a batch of messages should have been sent to Kafka", func() {
 				cons := consumeFromKafkaUntilMessagesReceived([]testkafka.MessageExpectation{
-					{Msg: msg1, Headers: []*sarama.RecordHeader{{Key: []byte("x-event-id"), Value: []byte("1")}}},
-					{Msg: msg2, Headers: []*sarama.RecordHeader{{Key: []byte("x-event-id"), Value: []byte("2")}}},
-					{Msg: msg3, Headers: []*sarama.RecordHeader{{Key: []byte("x-event-id"), Value: []byte("3")}}},
+					{Msg: msg1, Headers: []*sarama.RecordHeader{{Key: []byte("x-event-id"), Value: []byte("1")}}, Key: []byte("bar")},
+					{Msg: msg2, Headers: []*sarama.RecordHeader{{Key: []byte("x-event-id"), Value: []byte("2")}}, Key: []byte("bar")},
+					{Msg: msg3, Headers: []*sarama.RecordHeader{{Key: []byte("x-event-id"), Value: []byte("3")}}, Key: []byte("buzz")},
 				})
 				So(cons.MessagesFound, ShouldBeTrue)
 				Convey("And the messages should have been marked as completed", func() {

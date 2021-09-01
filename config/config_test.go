@@ -27,7 +27,7 @@ func TestNewConfig(t *testing.T) {
 		{
 			name: "valid configuration",
 			want: &Config{
-				EnableMigrations:     true,
+				SkipMigrations:       true,
 				DBHost:               "host",
 				DBPort:               123,
 				DBUser:               "joe",
@@ -44,7 +44,7 @@ func TestNewConfig(t *testing.T) {
 				RunOptimize:          true,
 			},
 			env: getEnvVars(map[string]string{
-				"ENABLE_MIGRATIONS": "true",
+				"SKIP_MIGRATIONS":   "true",
 				"DB_DRIVER":         "postgres",
 				"WRITE_CONCURRENCY": "16",
 				"POLL_FREQUENCY_MS": "1000",
@@ -55,7 +55,7 @@ func TestNewConfig(t *testing.T) {
 		{
 			name: "migrations are disabled by default",
 			want: &Config{
-				EnableMigrations:     false,
+				SkipMigrations:       false,
 				DBHost:               "host",
 				DBPort:               123,
 				DBDriver:             MySQL,
@@ -121,7 +121,7 @@ func TestConfig_GetDSN(t *testing.T) {
 				TLSEnable:         true,
 				TLSSkipVerifyPeer: true,
 			},
-			want: "user:pass@tcp(host:3306)/db-name?parseTime=true&tls=skip-verify",
+			want: "user:pass@tcp(host:3306)/db-name?parseTime=true&tls=skip-verify&multiStatements=true",
 		},
 		{
 			name: "generated DSN for postgres driver",

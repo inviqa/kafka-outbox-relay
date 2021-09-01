@@ -72,7 +72,8 @@ func consumeFromKafkaUntilMessagesReceived(exp []testkafka.MessageExpectation) *
 			j := 0
 			for _, m := range toFind {
 				headersAreSame := reflect.DeepEqual(consumed.Headers, m.Headers)
-				if !headersAreSame || bytes.Compare(m.Msg.PayloadJson, consumed.Value) != 0 {
+				keysAreSame := bytes.Equal(consumed.Key, m.Key)
+				if !headersAreSame || !keysAreSame || bytes.Compare(m.Msg.PayloadJson, consumed.Value) != 0 {
 					toFind[j] = m
 					j++
 				}
@@ -139,7 +140,7 @@ func getConfig() *config.Config {
 	}
 
 	cfg := &config.Config{
-		EnableMigrations:     true,
+		SkipMigrations:       true,
 		DBOutboxTable:        "kafka_outbox_test",
 		PollFrequencyMs:      1000,
 		SidecarProxyUrl:      server.URL,
@@ -177,12 +178,12 @@ func getConfig() *config.Config {
 }
 
 func pollForMessages(expBatches int) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*10*time.Duration(expBatches))
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*15*time.Duration(expBatches))
 	defer cancel()
 	batchCh := make(chan *outbox.Batch, 10)
 
 	p := poller.New(repo, batchCh, context.Background())
-	go p.Poll(time.Millisecond * 8)
+	go p.Poll(time.Millisecond * 10)
 
 	proc := processor.NewBatchProcessor(repo, pub)
 	proc.ListenAndProcess(ctx, batchCh)

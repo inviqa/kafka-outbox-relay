@@ -6,8 +6,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"inviqa/kafka-outbox-relay/outbox"
 	"strings"
+
+	"inviqa/kafka-outbox-relay/outbox"
 )
 
 func ensureOutboxTableExists() {
@@ -45,8 +46,8 @@ func insertOutboxMessages(msgs []*outbox.Message) {
 		var err error
 		var id int64
 		if cfg.DBDriver.MySQL() {
-			q = fmt.Sprintf("INSERT INTO `%s` SET batch_id = ?, topic = ?, push_started_at = ?, push_completed_at = ?, payload_json = ?, payload_headers = ?, push_attempts = ?;", cfg.DBOutboxTable)
-			res, err := tx.Exec(q, msg.BatchId, msg.Topic, msg.PushStartedAt, msg.PushCompletedAt, msg.PayloadJson, msg.PayloadHeaders, msg.PushAttempts)
+			q = fmt.Sprintf("INSERT INTO `%s` SET batch_id = ?, topic = ?, push_started_at = ?, push_completed_at = ?, payload_json = ?, payload_headers = ?, push_attempts = ?, `key` = ?, partition_key = ?;", cfg.DBOutboxTable)
+			res, err := tx.Exec(q, msg.BatchId, msg.Topic, msg.PushStartedAt, msg.PushCompletedAt, msg.PayloadJson, msg.PayloadHeaders, msg.PushAttempts, msg.Key, msg.PartitionKey)
 			if err != nil {
 				panic(fmt.Sprintf("failed to insert outbox message in MySQL: %s", err))
 			}
@@ -56,8 +57,8 @@ func insertOutboxMessages(msgs []*outbox.Message) {
 				panic(fmt.Sprintf("failed to determine last insert ID for the inserted outbox message: %s", err))
 			}
 		} else {
-			q = fmt.Sprintf("INSERT INTO %s(batch_id, topic, push_started_at, push_completed_at, payload_json, payload_headers, push_attempts) VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id;", cfg.DBOutboxTable)
-			err = tx.QueryRow(q, msg.BatchId, msg.Topic, msg.PushStartedAt, msg.PushCompletedAt, msg.PayloadJson, msg.PayloadHeaders, msg.PushAttempts).Scan(&id)
+			q = fmt.Sprintf("INSERT INTO %s(batch_id, topic, push_started_at, push_completed_at, payload_json, payload_headers, push_attempts, key, partition_key) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id;", cfg.DBOutboxTable)
+			err = tx.QueryRow(q, msg.BatchId, msg.Topic, msg.PushStartedAt, msg.PushCompletedAt, msg.PayloadJson, msg.PayloadHeaders, msg.PushAttempts, msg.Key, msg.PartitionKey).Scan(&id)
 			if err != nil {
 				panic(fmt.Sprintf("failed to insert outbox message in Postgres: %s", err))
 			}

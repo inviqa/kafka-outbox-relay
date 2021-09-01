@@ -17,6 +17,7 @@ func NewSaramaConfig(tlsEnable bool, tlsSkipVerify bool) *sarama.Config {
 	cfg.Version = sarama.V2_4_0_0
 	cfg.Producer.Return.Successes = true
 	cfg.Producer.Compression = sarama.CompressionGZIP
+	cfg.Producer.Partitioner = NewOutboxPartitioner
 	cfg.Metadata.Retry.Max = 10
 	cfg.Metadata.Retry.Backoff = 2 * time.Second
 	cfg.Consumer.Offsets.Initial = sarama.OffsetOldest

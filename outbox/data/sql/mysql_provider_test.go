@@ -39,6 +39,15 @@ func TestMysqlQueryProvider_DeletePublishedMessagesSql(t *testing.T) {
 	}
 }
 
+func TestMysqlQueryProvider_BatchFetchSql(t *testing.T) {
+	got := createProvider().BatchFetchSql()
+	exp := "SELECT `name`, `foo` FROM kafka_outbox WHERE batch_id = ?"
+
+	if got != exp {
+		t.Errorf("expected '%s', but got '%s'", exp, got)
+	}
+}
+
 func createProvider() *MysqlQueryProvider {
 	return &MysqlQueryProvider{
 		Columns: []string{"name", "foo"},

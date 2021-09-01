@@ -71,7 +71,6 @@ attributes:
   services:
     app:
       environment:
-        ENABLE_MIGRATIONS: "true"
         KAFKA_HOST: = @('kafka.host')
         KAFKA_PUBLISH_ATTEMPTS: =@('kafka.publish_attempts')
         DB_HOST: = @('database.host')
