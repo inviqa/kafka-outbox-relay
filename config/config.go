@@ -46,9 +46,9 @@ type Config struct {
 
 func NewConfig() (*Config, error) {
 	c := &Config{
-		WriteConcurrency:  1,
-		PollFrequencyMs:   500,
-		BatchSize:         250,
+		WriteConcurrency: 1,
+		PollFrequencyMs:  500,
+		BatchSize:        250,
 	}
 	arg.MustParse(c)
 
