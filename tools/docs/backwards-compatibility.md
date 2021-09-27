@@ -6,7 +6,7 @@ The public API surface area of the outbox relay is fairly small, however, it sti
 
 ## Major versions
 
-A major version will change over time, and receive new features and bugfixes. However, within each major version we will not break backwards compatibility, so you only need to consult the [upgrade](/UPGRADE.md) file when you are switching to a new major version to see what has breaking changes have been made. These will usually mean that you need to change how you use the relay.
+A major version will change over time, and receive new features and bugfixes. However, within each major version we will not break backwards compatibility, so you only need to consult the [upgrade](/UPGRADE.md) file when you are switching to a new major version to see what breaking changes have been made. Breaking changes usually mean that you need to change how you use the relay.
 
 >_NOTE: Using a major version tag (e.g. `v1`) is the recommended way to pull the outbox relay image into your project._
 
