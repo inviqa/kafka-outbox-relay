@@ -35,12 +35,6 @@ command('go test integration docker <db-driver>'):
     #!bash(workspace:/)|@
     passthru docker-compose exec -T -e GO_TEST_MODE=docker -e LOG_LEVEL=error -e DB_DRIVER=${DB_DRIVER} app go test -count=1 -v --tags=integration ./integration/
 
-command('app publish major'): |
-  #!bash(workspace:/)|@
-  run docker login -u="@('docker.registry.username')" -p="@('docker.registry.password')" @('docker.registry.url')
-  run docker push @('docker.repository'):@('docker.tagPrefix')@('app.major_version')
-  run docker logout @('docker.registry.url')
-
 attributes:
   app:
     binary: app
@@ -52,7 +46,6 @@ attributes:
       username: "= env('DOCKER_REGISTRY_CREDS_USR') ?: ''"
       password: "= env('DOCKER_REGISTRY_CREDS_PSW') ?: ''"
     repository: quay.io/inviqa_images/kafka-outbox-relay
-    tagPrefix: kafka-outbox-relay-
   kafka:
     host: kafka:29092
     publish_attempts: 3
