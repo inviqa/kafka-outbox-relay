@@ -32,7 +32,7 @@ func TestNewConfig(t *testing.T) {
 				DBPort:               123,
 				DBUser:               "joe",
 				DBPass:               "passw0rd",
-				DBSchema:             "db-name",
+				DBName:               "db-name",
 				DBDriver:             Postgres,
 				DBOutboxTable:        "kafka_outbox",
 				KafkaHost:            []string{"kafka"},
@@ -62,7 +62,7 @@ func TestNewConfig(t *testing.T) {
 				DBOutboxTable:        "kafka_outbox",
 				DBUser:               "joe",
 				DBPass:               "passw0rd",
-				DBSchema:             "db-name",
+				DBName:               "db-name",
 				KafkaHost:            []string{"kafka"},
 				KafkaPublishAttempts: 5,
 				WriteConcurrency:     1,
@@ -99,7 +99,7 @@ func TestConfig_GetDSN(t *testing.T) {
 		DBPort            uint32
 		DBUser            string
 		DBPass            string
-		DBSchema          string
+		DBName            string
 		DBDriver          DbDriver
 		TLSEnable         bool
 		TLSSkipVerifyPeer bool
@@ -116,7 +116,7 @@ func TestConfig_GetDSN(t *testing.T) {
 				DBPort:            3306,
 				DBUser:            "user",
 				DBPass:            "pass",
-				DBSchema:          "db-name",
+				DBName:            "db-name",
 				DBDriver:          "mysql",
 				TLSEnable:         true,
 				TLSSkipVerifyPeer: true,
@@ -130,7 +130,7 @@ func TestConfig_GetDSN(t *testing.T) {
 				DBPort:            5432,
 				DBUser:            "user",
 				DBPass:            "pass",
-				DBSchema:          "db-name",
+				DBName:            "db-name",
 				DBDriver:          "postgres",
 				TLSEnable:         true,
 				TLSSkipVerifyPeer: false,
@@ -145,7 +145,7 @@ func TestConfig_GetDSN(t *testing.T) {
 				DBPort:            tt.fields.DBPort,
 				DBUser:            tt.fields.DBUser,
 				DBPass:            tt.fields.DBPass,
-				DBSchema:          tt.fields.DBSchema,
+				DBName:            tt.fields.DBName,
 				DBDriver:          tt.fields.DBDriver,
 				TLSEnable:         tt.fields.TLSEnable,
 				TLSSkipVerifyPeer: tt.fields.TLSSkipVerifyPeer,
@@ -264,7 +264,7 @@ func getRequiredEnvVars() map[string]string {
 		"DB_PORT":                "123",
 		"DB_USER":                "joe",
 		"DB_PASS":                "passw0rd",
-		"DB_SCHEMA":              "db-name",
+		"DB_NAME":                "db-name",
 		"DB_DRIVER":              "mysql",
 		"KAFKA_HOST":             "kafka",
 		"KAFKA_PUBLISH_ATTEMPTS": "5",

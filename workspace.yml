@@ -77,7 +77,7 @@ attributes:
         DB_PORT: = @('database.port')
         DB_USER: = @('database.user')
         DB_PASS: = @('database.pass')
-        DB_SCHEMA: = @('database.name')
+        DB_NAME: = @('database.name')
         DB_DRIVER: = @('database.driver')
     postgres:
       version: 11.7

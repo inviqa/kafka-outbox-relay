@@ -31,7 +31,7 @@ type Config struct {
 	DBPort               uint32   `arg:"--db-port,env:DB_PORT,required"`
 	DBUser               string   `arg:"--db-user,env:DB_USER,required"`
 	DBPass               string   `arg:"--db-pass,env:DB_PASS,required"`
-	DBSchema             string   `arg:"--db-schema,env:DB_SCHEMA,required"`
+	DBName               string   `arg:"--db-name,env:DB_NAME,required"`
 	DBDriver             DbDriver `arg:"--db-driver,env:DB_DRIVER,required"`
 	DBOutboxTable        string
 	KafkaHost            []string `arg:"--kafka-host,env:KAFKA_HOST,required"`
@@ -77,7 +77,7 @@ func (c *Config) GetDSN() string {
 				tls = "true"
 			}
 		}
-		return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true&tls=%s&multiStatements=true", c.DBUser, c.DBPass, c.DBHost, c.DBPort, c.DBSchema, tls)
+		return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true&tls=%s&multiStatements=true", c.DBUser, c.DBPass, c.DBHost, c.DBPort, c.DBName, tls)
 	case Postgres:
 		sslMode := "disable"
 		if c.TLSEnable {
@@ -87,7 +87,7 @@ func (c *Config) GetDSN() string {
 				sslMode = "verify-full"
 			}
 		}
-		return fmt.Sprintf("%s://%s@%s:%d/%s?sslmode=%s", c.DBDriver, url.UserPassword(c.DBUser, c.DBPass), c.DBHost, c.DBPort, c.DBSchema, sslMode)
+		return fmt.Sprintf("%s://%s@%s:%d/%s?sslmode=%s", c.DBDriver, url.UserPassword(c.DBUser, c.DBPass), c.DBHost, c.DBPort, c.DBName, sslMode)
 	default:
 		log.Logger.Fatalf("the DB driver configured (%s) is not supported", c.DBDriver)
 		return ""
@@ -105,7 +105,7 @@ func (c Config) MarshalJSON() ([]byte, error) {
 		"DBPort":               c.DBPort,
 		"DBUser":               c.DBUser,
 		"DBPass":               "xxxxx",
-		"DBSchema":             c.DBSchema,
+		"DBName":               c.DBName,
 		"DBDriver":             c.DBDriver,
 		"KafkaHost":            c.KafkaHost,
 		"KafkaPublishAttempts": c.KafkaPublishAttempts,
