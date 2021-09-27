@@ -6,6 +6,8 @@ In each application that wants to use the outbox relay service, there needs to b
 
 The schema is managed purely by the outbox relay service. Whilst it sits inside your main application's database, it is managed by the relay to make it easier when upgrading to newer version of the outbox relay.
 
+The outbox table name is `kafka_outbox`.
+
 ### Public API
 
 It is critical that your application only relies upon the columns marked as being part of the public API in the table below. The only interaction your application has with the outbox table should be the creation of new records, in which only the public API fields matter, the rest can be omitted from your `INSERT` statement. If you must run other queries against this table, then they should only use the public API fields.
