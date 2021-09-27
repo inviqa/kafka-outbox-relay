@@ -73,7 +73,7 @@ func createConfig() *config.Config {
 		DBPort:          13306,
 		DBUser:          "kafka-outbox-relay",
 		DBPass:          "kafka-outbox-relay",
-		DBSchema:        "kafka-outbox-relay",
+		DBName:          "kafka-outbox-relay",
 		DBDriver:        config.MySQL,
 		DBOutboxTable:   "kafka_outbox_test",
 		KafkaHost:       []string{"localhost:9092"},

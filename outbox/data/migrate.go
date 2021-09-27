@@ -44,7 +44,7 @@ func MigrateDatabase(db *sql.DB, cfg *config.Config) {
 
 	d := createMigrateSourceDriver(cfg.DBDriver)
 
-	m, err := migrate.NewWithInstance("iofs", d, cfg.DBSchema, driver)
+	m, err := migrate.NewWithInstance("iofs", d, cfg.DBName, driver)
 	if err != nil {
 		log.Logger.Fatalf("failed to load migration files from source driver: %s", err)
 	}

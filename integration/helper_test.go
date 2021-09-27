@@ -149,7 +149,7 @@ func getConfig() *config.Config {
 		KafkaHost:            []string{"localhost:9092"},
 		DBUser:               "kafka-outbox-relay",
 		DBPass:               "kafka-outbox-relay",
-		DBSchema:             "kafka-outbox-relay",
+		DBName:               "kafka-outbox-relay",
 	}
 
 	envs := map[string]string{}
