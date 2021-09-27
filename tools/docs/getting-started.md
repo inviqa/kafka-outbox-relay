@@ -1,6 +1,6 @@
 # Getting Started
 
-This service provides a reusable docker image at `quay.io/inviqa_images/kafka-outbox-relay`, which can be deployed on your project. 
+This service provides a reusable docker image at `quay.io/inviqa_images/kafka-outbox-relay`, which can be deployed on your project. See [backwards compatibility](backwards-compatibility.md) for more information on available image tags.
 
 ## Using this service
 
