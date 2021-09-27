@@ -14,6 +14,8 @@ import (
 const (
 	MySQL    DbDriver = "mysql"
 	Postgres DbDriver = "postgres"
+
+	outboxTable = "kafka_outbox"
 )
 
 type DbDriver string
@@ -31,7 +33,7 @@ type Config struct {
 	DBPass               string   `arg:"--db-pass,env:DB_PASS,required"`
 	DBSchema             string   `arg:"--db-schema,env:DB_SCHEMA,required"`
 	DBDriver             DbDriver `arg:"--db-driver,env:DB_DRIVER,required"`
-	DBOutboxTable        string   `arg:"--db-outbox-table,env:DB_OUTBOX_TABLE,required"`
+	DBOutboxTable        string
 	KafkaHost            []string `arg:"--kafka-host,env:KAFKA_HOST,required"`
 	KafkaPublishAttempts int      `arg:"--kafka-publish-attempts,env:KAFKA_PUBLISH_ATTEMPTS,required"`
 	TLSEnable            bool     `arg:"--kafka-tls,env:TLS_ENABLE"`
@@ -46,6 +48,7 @@ type Config struct {
 
 func NewConfig() (*Config, error) {
 	c := &Config{
+		DBOutboxTable:    outboxTable,
 		WriteConcurrency: 1,
 		PollFrequencyMs:  500,
 		BatchSize:        250,
@@ -104,7 +107,6 @@ func (c Config) MarshalJSON() ([]byte, error) {
 		"DBPass":               "xxxxx",
 		"DBSchema":             c.DBSchema,
 		"DBDriver":             c.DBDriver,
-		"DBOutboxTable":        c.DBOutboxTable,
 		"KafkaHost":            c.KafkaHost,
 		"KafkaPublishAttempts": c.KafkaPublishAttempts,
 		"TLSEnable":            c.TLSEnable,
