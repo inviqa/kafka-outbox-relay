@@ -32,7 +32,10 @@ pipeline {
 {% if @('pipeline.publish.enabled') == 'yes' %}
         stage('Publish') {
             when { not { triggeredBy 'TimerTrigger' } }
-            steps { sh 'ws app publish' }
+            steps {
+              sh 'ws app publish'
+              sh 'ws app publish major'
+            }
         }
 {% endif %}
 {% if @('pipeline.preview.enabled') == 'yes' %}
