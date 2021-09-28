@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/go-test/deep"
 )
 
 func TestNewConfig(t *testing.T) {
@@ -27,6 +29,7 @@ func TestNewConfig(t *testing.T) {
 		{
 			name: "valid configuration",
 			want: &Config{
+				PollingDisabled:      true,
 				SkipMigrations:       true,
 				DBHost:               "host",
 				DBPort:               123,
@@ -55,6 +58,7 @@ func TestNewConfig(t *testing.T) {
 		{
 			name: "migrations are disabled by default",
 			want: &Config{
+				PollingDisabled:      true,
 				SkipMigrations:       false,
 				DBHost:               "host",
 				DBPort:               123,
@@ -85,8 +89,8 @@ func TestNewConfig(t *testing.T) {
 				return
 			}
 
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewConfig() = %#v, want %#v", got, tt.want)
+			if diff := deep.Equal(tt.want, got); diff != nil {
+				t.Error(diff)
 			}
 		})
 		os.Clearenv()
@@ -260,6 +264,7 @@ func getEnvVars(overrides map[string]string) map[string]string {
 
 func getRequiredEnvVars() map[string]string {
 	return map[string]string{
+		"POLLING_DISABLED":       "true",
 		"DB_HOST":                "host",
 		"DB_PORT":                "123",
 		"DB_USER":                "joe",
