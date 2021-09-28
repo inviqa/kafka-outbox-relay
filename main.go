@@ -15,8 +15,6 @@ import (
 	"inviqa/kafka-outbox-relay/outbox/poller"
 	"inviqa/kafka-outbox-relay/outbox/processor"
 	"inviqa/kafka-outbox-relay/prometheus"
-
-	"github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -60,9 +58,19 @@ func main() {
 
 // todo: move to package
 func startRelayServicePolling(cfg *config.Config, repo outbox.Repository, ctx context.Context) func() {
-	log.Logger.WithFields(logrus.Fields{
-		"config": cfg,
-	}).Info("starting service")
+	logger := log.Logger.WithField("config", cfg)
+
+	// if we are in dummy mode then we should not start polling, instead we should
+	// wait forever by receiving on a channel that never gets a value, it does not
+	// matter that we do not act on context cancellation either as we are not
+	// processing anything, and it should be fine to terminate at any point
+	if cfg.InDummyMode() {
+		logger.Info("starting outbox relay in dummy mode, not polling")
+		<-make(chan struct{})
+		return func() {}
+	}
+
+	logger.Info("starting outbox relay polling")
 
 	batchCh := make(chan *outbox.Batch, 10)
 	pub := kafka.NewPublisher(cfg.KafkaHost, kafka.NewSaramaConfig(cfg.TLSEnable, cfg.TLSSkipVerifyPeer))

@@ -15,9 +15,13 @@ const (
 	MySQL    DbDriver = "mysql"
 	Postgres DbDriver = "postgres"
 
+	dummyMode Mode = "dummy"
+	realMode  Mode = "real"
+
 	outboxTable = "kafka_outbox"
 )
 
+type Mode string
 type DbDriver string
 
 var supportedDbTypes = map[DbDriver]bool{
@@ -26,6 +30,7 @@ var supportedDbTypes = map[DbDriver]bool{
 }
 
 type Config struct {
+	Mode                 Mode     `arg:"--mode,env:MODE"`
 	SkipMigrations       bool     `arg:"--skip-migrations,env:SKIP_MIGRATIONS"`
 	DBHost               string   `arg:"--db-host,env:DB_HOST,required"`
 	DBPort               uint32   `arg:"--db-port,env:DB_PORT,required"`
@@ -66,6 +71,10 @@ func (c *Config) GetPollIntervalDurationInMs() time.Duration {
 	return time.Duration(c.PollFrequencyMs) * time.Millisecond
 }
 
+func (c *Config) InDummyMode() bool {
+	return c.Mode == dummyMode
+}
+
 func (c *Config) GetDSN() string {
 	switch c.DBDriver {
 	case MySQL:
@@ -100,6 +109,7 @@ func (c *Config) GetDependencySystemAddresses() []string {
 
 func (c Config) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]interface{}{
+		"Mode":                 c.Mode,
 		"SkipMigrations":       c.SkipMigrations,
 		"DBHost":               c.DBHost,
 		"DBPort":               c.DBPort,
@@ -130,4 +140,8 @@ func (d DbDriver) Postgres() bool {
 
 func (d DbDriver) String() string {
 	return string(d)
+}
+
+func (m Mode) String() string {
+	return string(m)
 }
