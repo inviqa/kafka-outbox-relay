@@ -15,6 +15,10 @@ import (
 	"github.com/johejo/golang-migrate-extra/source/iofs"
 )
 
+const (
+	migrationsTable = "kafka_outbox_schema_migrations"
+)
+
 var (
 	//go:embed migrations/mysql/*.sql
 	mysqlFiles embed.FS
@@ -33,9 +37,9 @@ func MigrateDatabase(db *sql.DB, cfg *config.Config) {
 	var err error
 	var driver database.Driver
 	if cfg.DBDriver.MySQL() {
-		driver, err = mysql.WithInstance(db, &mysql.Config{})
+		driver, err = mysql.WithInstance(db, &mysql.Config{MigrationsTable: migrationsTable})
 	} else {
-		driver, err = postgres.WithInstance(db, &postgres.Config{})
+		driver, err = postgres.WithInstance(db, &postgres.Config{MigrationsTable: migrationsTable})
 	}
 
 	if err != nil {
