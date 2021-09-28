@@ -1,6 +1,6 @@
 # Getting Started
 
-This service provides a reusable docker image at `quay.io/inviqa_images/kafka-outbox-relay`, which can be deployed on your project. 
+This service provides a reusable docker image at `quay.io/inviqa_images/kafka-outbox-relay`, which can be deployed on your project. See [backwards compatibility](backwards-compatibility.md) for more information on available image tags.
 
 ## Using this service
 
@@ -13,7 +13,7 @@ If you want to use this service to publish messages to Kafka from your applicati
   * `topic`
   * `payload_json`
   * `key` and `partition_key` (both optional, see [message keys](/tools/docs/message-keys.md))
-4. desired event payload for Kafka, inside that same transaction. This will give us ACID compliance for both the event **and** the original data changes in your application.
+4. Insert a record in the `kafka_outbox` table with the desired event payload for Kafka, inside that same transaction. This will give us ACID compliance for both the event **and** the original data changes in your application.
 5. Deploy this service, configured for your application's database (see configuration below)
 
 >_NOTE: This outbox relay is designed to run for a single application. For example, if you run two different applications that both produce messages in an outbox table, then you will need 2 deployments of this service, each one configured accordingly._
@@ -25,6 +25,10 @@ It is important to note that, when developing your application that publishes ev
 ### Configuration
 
 See [configuration](configuration.md) for more information.
+
+### Backwards compatibility
+
+See [here](backwards-compatibility.md) for more information.
 
 ## Other notes
 

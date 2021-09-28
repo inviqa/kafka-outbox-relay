@@ -1,0 +1,7 @@
+command('app publish'): |
+  #!bash(workspace:/)|@
+  echo '@('docker.registry.password')' | run docker login --username='@('docker.registry.username')' --password-stdin '@('docker.registry.url')'
+  run docker tag @('docker.repository'):@('docker.tagPrefix')@('app.version') @('docker.repository'):@('docker.tagPrefix')@('app.major_version')
+  run docker push @('docker.repository'):@('docker.tagPrefix')@('app.version')
+  run docker push @('docker.repository'):@('docker.tagPrefix')@('app.major_version')
+  run docker logout @('docker.registry.url')
