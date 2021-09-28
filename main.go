@@ -60,12 +60,12 @@ func main() {
 func startRelayServicePolling(cfg *config.Config, repo outbox.Repository, ctx context.Context) func() {
 	logger := log.Logger.WithField("config", cfg)
 
-	// if we are in dummy mode then we should not start polling, instead we should
+	// if polling has been disabled, we should
 	// wait forever by receiving on a channel that never gets a value, it does not
 	// matter that we do not act on context cancellation either as we are not
 	// processing anything, and it should be fine to terminate at any point
 	if cfg.PollingDisabled {
-		logger.Info("starting outbox relay in dummy mode, not polling")
+		logger.Info("starting outbox relay in simulate mode, not polling")
 		<-make(chan struct{})
 		return func() {}
 	}
