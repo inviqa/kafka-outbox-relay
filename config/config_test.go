@@ -29,7 +29,7 @@ func TestNewConfig(t *testing.T) {
 		{
 			name: "valid configuration",
 			want: &Config{
-				Mode:                 "dummy",
+				PollingDisabled:      true,
 				SkipMigrations:       true,
 				DBHost:               "host",
 				DBPort:               123,
@@ -58,7 +58,7 @@ func TestNewConfig(t *testing.T) {
 		{
 			name: "migrations are disabled by default",
 			want: &Config{
-				Mode:                 "dummy",
+				PollingDisabled:      true,
 				SkipMigrations:       false,
 				DBHost:               "host",
 				DBPort:               123,
@@ -223,24 +223,6 @@ func TestConfig_GetDependencySystemAddresses(t *testing.T) {
 	}
 }
 
-func TestConfig_InDummyMode(t *testing.T) {
-	t.Run("dummy mode enabled", func(t *testing.T) {
-		t.Parallel()
-		cfg := &Config{Mode: dummyMode}
-		if !cfg.InDummyMode() {
-			t.Error("expected IsDummyMode() to return true, but it returned false")
-		}
-	})
-
-	t.Run("dummy mode disabled", func(t *testing.T) {
-		t.Parallel()
-		cfg := &Config{Mode: realMode}
-		if cfg.InDummyMode() {
-			t.Error("expected IsDummyMode() to return false, but it returned true")
-		}
-	})
-}
-
 func TestDbDriver_String(t *testing.T) {
 	if got := Postgres.String(); got != "postgres" {
 		t.Errorf("expected 'postgres' but got '%s'", got)
@@ -282,7 +264,7 @@ func getEnvVars(overrides map[string]string) map[string]string {
 
 func getRequiredEnvVars() map[string]string {
 	return map[string]string{
-		"MODE":                   "dummy",
+		"POLLING_DISABLED":       "true",
 		"DB_HOST":                "host",
 		"DB_PORT":                "123",
 		"DB_USER":                "joe",

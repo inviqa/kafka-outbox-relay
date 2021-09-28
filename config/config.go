@@ -15,13 +15,10 @@ const (
 	MySQL    DbDriver = "mysql"
 	Postgres DbDriver = "postgres"
 
-	dummyMode Mode = "dummy"
-	realMode  Mode = "real"
-
-	outboxTable = "kafka_outbox"
+	defaultPublishAttempts = 3
+	outboxTable            = "kafka_outbox"
 )
 
-type Mode string
 type DbDriver string
 
 var supportedDbTypes = map[DbDriver]bool{
@@ -30,7 +27,7 @@ var supportedDbTypes = map[DbDriver]bool{
 }
 
 type Config struct {
-	Mode                 Mode     `arg:"--mode,env:MODE"`
+	PollingDisabled      bool     `arg:"--polling-disabled,env:POLLING_DISABLED"`
 	SkipMigrations       bool     `arg:"--skip-migrations,env:SKIP_MIGRATIONS"`
 	DBHost               string   `arg:"--db-host,env:DB_HOST,required"`
 	DBPort               uint32   `arg:"--db-port,env:DB_PORT,required"`
@@ -39,8 +36,8 @@ type Config struct {
 	DBName               string   `arg:"--db-name,env:DB_NAME,required"`
 	DBDriver             DbDriver `arg:"--db-driver,env:DB_DRIVER,required"`
 	DBOutboxTable        string
-	KafkaHost            []string `arg:"--kafka-host,env:KAFKA_HOST,required"`
-	KafkaPublishAttempts int      `arg:"--kafka-publish-attempts,env:KAFKA_PUBLISH_ATTEMPTS,required"`
+	KafkaHost            []string `arg:"--kafka-host,env:KAFKA_HOST"`
+	KafkaPublishAttempts int      `arg:"--kafka-publish-attempts,env:KAFKA_PUBLISH_ATTEMPTS"`
 	TLSEnable            bool     `arg:"--kafka-tls,env:TLS_ENABLE"`
 	TLSSkipVerifyPeer    bool     `arg:"--kafka-tls-verify-peer,env:TLS_SKIP_VERIFY_PEER"`
 	WriteConcurrency     int      `arg:"--write-concurrency,env:WRITE_CONCURRENCY"`
@@ -53,10 +50,11 @@ type Config struct {
 
 func NewConfig() (*Config, error) {
 	c := &Config{
-		DBOutboxTable:    outboxTable,
-		WriteConcurrency: 1,
-		PollFrequencyMs:  500,
-		BatchSize:        250,
+		KafkaPublishAttempts: defaultPublishAttempts,
+		DBOutboxTable:        outboxTable,
+		WriteConcurrency:     1,
+		PollFrequencyMs:      500,
+		BatchSize:            250,
 	}
 	arg.MustParse(c)
 
@@ -69,10 +67,6 @@ func NewConfig() (*Config, error) {
 
 func (c *Config) GetPollIntervalDurationInMs() time.Duration {
 	return time.Duration(c.PollFrequencyMs) * time.Millisecond
-}
-
-func (c *Config) InDummyMode() bool {
-	return c.Mode == dummyMode
 }
 
 func (c *Config) GetDSN() string {
@@ -109,7 +103,7 @@ func (c *Config) GetDependencySystemAddresses() []string {
 
 func (c Config) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]interface{}{
-		"Mode":                 c.Mode,
+		"PollingDisabled":      c.PollingDisabled,
 		"SkipMigrations":       c.SkipMigrations,
 		"DBHost":               c.DBHost,
 		"DBPort":               c.DBPort,
@@ -140,8 +134,4 @@ func (d DbDriver) Postgres() bool {
 
 func (d DbDriver) String() string {
 	return string(d)
-}
-
-func (m Mode) String() string {
-	return string(m)
 }

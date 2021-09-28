@@ -64,7 +64,7 @@ func startRelayServicePolling(cfg *config.Config, repo outbox.Repository, ctx co
 	// wait forever by receiving on a channel that never gets a value, it does not
 	// matter that we do not act on context cancellation either as we are not
 	// processing anything, and it should be fine to terminate at any point
-	if cfg.InDummyMode() {
+	if cfg.PollingDisabled {
 		logger.Info("starting outbox relay in dummy mode, not polling")
 		<-make(chan struct{})
 		return func() {}
