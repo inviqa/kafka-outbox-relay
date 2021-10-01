@@ -74,7 +74,7 @@ func startRelayServicePolling(cfg *config.Config, repo outbox.Repository, ctx co
 
 	batchCh := make(chan *outbox.Batch, 10)
 	pub := kafka.NewPublisher(cfg.KafkaHost, kafka.NewSaramaConfig(cfg.TLSEnable, cfg.TLSSkipVerifyPeer))
-	go poller.New(repo, batchCh, ctx).Poll(cfg.GetPollIntervalDurationInMs())
+	go poller.New(repo, batchCh).Poll(ctx, cfg.GetPollIntervalDurationInMs())
 
 	proc := processor.NewBatchProcessor(repo, pub)
 	for i := 0; i < cfg.WriteConcurrency; i++ {
