@@ -181,8 +181,7 @@ func pollForMessages(expBatches int) {
 	defer cancel()
 	batchCh := make(chan *outbox.Batch, 10)
 
-	p := poller.New(repo, batchCh, context.Background())
-	go p.Poll(time.Millisecond * 10)
+	go poller.New(repo, batchCh).Poll(context.Background(), time.Millisecond*10)
 
 	proc := processor.NewBatchProcessor(repo, pub)
 	proc.ListenAndProcess(ctx, batchCh)

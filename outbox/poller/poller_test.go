@@ -2,12 +2,13 @@ package poller
 
 import (
 	"context"
-	"inviqa/kafka-outbox-relay/outbox"
-	"inviqa/kafka-outbox-relay/outbox/test"
 	"reflect"
 	"runtime"
 	"testing"
 	"time"
+
+	"inviqa/kafka-outbox-relay/outbox"
+	"inviqa/kafka-outbox-relay/outbox/test"
 
 	"github.com/google/uuid"
 )
@@ -16,7 +17,7 @@ func TestNew(t *testing.T) {
 	repo := test.NewMockRepository()
 	ch := make(chan *outbox.Batch)
 
-	if nil == New(repo, ch, context.Background()) {
+	if nil == New(repo, ch) {
 		t.Errorf("received nil from New()")
 	}
 }
@@ -31,8 +32,8 @@ func Test_outboxPoller_Poll(t *testing.T) {
 	repo.AddBatch(b1)
 	repo.AddBatch(b2)
 
-	p := New(repo, ch, context.Background())
-	go p.Poll(time.Millisecond * 10)
+	p := New(repo, ch)
+	go p.Poll(context.Background(), time.Millisecond*10)
 
 	readFromChannelUntilBatchReceived(b1, ch, t)
 	readFromChannelUntilBatchReceived(b2, ch, t)
@@ -45,8 +46,8 @@ func Test_outboxPoller_PollSleepsAfterARepositoryError(t *testing.T) {
 	repo.ReturnErrors()
 
 	ctx, cancel := context.WithCancel(context.Background())
-	p := New(repo, ch, ctx)
-	go p.Poll(time.Second * 1)
+	p := New(repo, ch)
+	go p.Poll(ctx, time.Second*1)
 
 	time.Sleep(time.Millisecond * 500)
 	cancel()
@@ -67,8 +68,8 @@ func Test_outboxPoller_PollTerminatesOnContextCancel(t *testing.T) {
 	repo.AddBatch(b2)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	p := New(repo, ch, ctx)
-	go p.Poll(time.Millisecond * 10)
+	p := New(repo, ch)
+	go p.Poll(ctx, time.Millisecond*10)
 
 	routines := runtime.NumGoroutine()
 	cancel()

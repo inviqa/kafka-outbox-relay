@@ -2,30 +2,29 @@ package poller
 
 import (
 	"context"
+	"time"
+
 	"inviqa/kafka-outbox-relay/log"
 	"inviqa/kafka-outbox-relay/outbox"
-	"time"
 )
 
 type repository interface {
 	GetBatch() (*outbox.Batch, error)
 }
 
-func New(r repository, ch chan<- *outbox.Batch, ctx context.Context) *Poller {
+func New(r repository, ch chan<- *outbox.Batch) *Poller {
 	return &Poller{
 		ch:   ch,
 		repo: r,
-		ctx:  ctx,
 	}
 }
 
 type Poller struct {
 	ch   chan<- *outbox.Batch
 	repo repository
-	ctx  context.Context
 }
 
-func (p Poller) Poll(interval time.Duration) {
+func (p Poller) Poll(ctx context.Context, interval time.Duration) {
 	for {
 		batch, err := p.repo.GetBatch()
 		if err != nil {
@@ -37,7 +36,7 @@ func (p Poller) Poll(interval time.Duration) {
 		select {
 		case p.ch <- batch:
 			break
-		case <-p.ctx.Done():
+		case <-ctx.Done():
 			return
 		}
 
