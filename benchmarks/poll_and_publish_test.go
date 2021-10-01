@@ -4,9 +4,10 @@ package benchmarks
 
 import (
 	"context"
+	"testing"
+
 	"inviqa/kafka-outbox-relay/outbox"
 	"inviqa/kafka-outbox-relay/outbox/processor"
-	"testing"
 )
 
 const (
@@ -20,8 +21,8 @@ func BenchmarkOutboxPollAndPublishToKafka(b *testing.B) {
 	cfg.BatchSize = batchSize
 	repo = outbox.NewRepository(db, cfg)
 	batchCh := make(chan *outbox.Batch)
-	proc := processor.NewBatchProcessor(repo, pub, context.Background())
-	go proc.ListenAndProcess(batchCh)
+	proc := processor.NewBatchProcessor(repo, pub)
+	go proc.ListenAndProcess(context.Background(), batchCh)
 
 	purgeOutboxTable()
 	populateOutbox()
