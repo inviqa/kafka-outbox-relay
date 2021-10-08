@@ -52,7 +52,7 @@ func main() {
 
 		go prometheus.ObserveQueueSize(repo, ctx)
 		go prometheus.ObserveTotalSize(repo, ctx)
-		prometheus.StartHttpServer(cfg, db)
+		prometheus.StartHttpServer(ctx, cfg, db)
 	}
 }
 
@@ -82,8 +82,7 @@ func startRelayServicePolling(cfg *config.Config, repo outbox.Repository, ctx co
 	}
 
 	return func() {
-		err := pub.Close()
-		if err != nil {
+		if err := pub.Close(); err != nil {
 			log.Logger.WithError(err).Error("error closing kafka publisher during shutdown")
 		}
 	}
