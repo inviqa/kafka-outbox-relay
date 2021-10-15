@@ -12,4 +12,4 @@ CREATE TABLE IF NOT EXISTS kafka_outbox(
     created_at timestamp DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX outbox_push_completed_at ON kafka_outbox(push_completed_at);
+CREATE INDEX IF NOT EXISTS outbox_push_completed_at ON kafka_outbox(push_completed_at);
