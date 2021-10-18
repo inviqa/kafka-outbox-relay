@@ -67,7 +67,6 @@ func consumeFromKafkaUntilMessagesReceived(exp []testkafka.MessageExpectation) *
 	toFind := make([]testkafka.MessageExpectation, len(exp))
 	copy(toFind, exp)
 	cons := &testkafka.ConsumerHandler{
-		MessagesFound: false,
 		Consume: func(consumed *sarama.ConsumerMessage, c *testkafka.ConsumerHandler) {
 			j := 0
 			for _, m := range toFind {
@@ -89,15 +88,6 @@ func consumeFromKafkaUntilMessagesReceived(exp []testkafka.MessageExpectation) *
 	if err != nil {
 		log.Logger.WithError(err).Panic("error occurred creating Kafka consumer group client")
 	}
-
-	go func() {
-		for err := range cl.Errors() {
-			log.Logger.WithError(err).Errorf("error occurred in consumer group")
-			if ctx.Err() != nil {
-				return
-			}
-		}
-	}()
 
 	topics := testkafka.GetTopicsFromMessageExpectations(exp)
 	go func() {

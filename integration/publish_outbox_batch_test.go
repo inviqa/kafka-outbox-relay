@@ -70,19 +70,19 @@ func TestPublishOutboxBatchCorrectlyMarksFailedMessagesAsErrored(t *testing.T) {
 		msg1 := &outbox.Message{
 			PayloadJson:    []byte(`{"foo": "bar"}`),
 			PayloadHeaders: []byte(`{"x-event-id": 1}`),
-			Topic:          "testProductUpdate",
+			Topic:          "testProductCreate",
 			PushAttempts:   2,
 		}
 		msg2 := &outbox.Message{
 			PayloadJson:    []byte(`{"foo": "baz"}`),
 			PayloadHeaders: []byte(`{"x-event-id": 2}`),
-			Topic:          "testProductUpdate",
+			Topic:          "testProductCreate",
 			PushAttempts:   2,
 		}
 		msg3 := &outbox.Message{
 			PayloadJson:    []byte(`{"foo": "buzz"}`),
 			PayloadHeaders: []byte(`{"x-event-id": 3}`),
-			Topic:          "testProductUpdate",
+			Topic:          "testProductCreate",
 			PushAttempts:   2,
 		}
 
