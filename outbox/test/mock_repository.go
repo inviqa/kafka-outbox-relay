@@ -42,7 +42,6 @@ func (mr *MockRepository) GetBatch() (*outbox.Batch, error) {
 		return nil, errors.New("oops")
 	}
 
-
 	return mr.popBatch(), nil
 }
 
