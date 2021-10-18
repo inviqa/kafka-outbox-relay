@@ -93,6 +93,9 @@ func consumeFromKafkaUntilMessagesReceived(exp []testkafka.MessageExpectation) *
 	go func() {
 		for err := range cl.Errors() {
 			log.Logger.WithError(err).Errorf("error occurred in consumer group")
+			if ctx.Err() != nil {
+				return
+			}
 		}
 	}()
 
@@ -113,6 +116,9 @@ func consumeFromKafkaUntilMessagesReceived(exp []testkafka.MessageExpectation) *
 		for {
 			if cons.MessagesFound {
 				doneCh <- true
+			}
+			if ctx.Err() != nil {
+				return
 			}
 		}
 	}()
@@ -181,7 +187,7 @@ func pollForMessages(expBatches int) {
 	defer cancel()
 	batchCh := make(chan *outbox.Batch, 10)
 
-	go poller.New(repo, batchCh).Poll(context.Background(), time.Millisecond*10)
+	go poller.New(repo, batchCh).Poll(ctx, time.Millisecond*10)
 
 	proc := processor.NewBatchProcessor(repo, pub)
 	proc.ListenAndProcess(ctx, batchCh)

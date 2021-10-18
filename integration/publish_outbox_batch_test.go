@@ -28,7 +28,7 @@ func TestPublishOutboxBatchSuccessfullyPublishesToKafka(t *testing.T) {
 			PayloadJson:    []byte(`{"foo": "baz"}`),
 			PayloadHeaders: []byte(`{"x-event-id": 2}`),
 			PartitionKey:   "foo",
-			Key:            "bar",
+			Key:            "baz",
 			Topic:          "testProductUpdate",
 		}
 		msg3 := &outbox.Message{
@@ -45,7 +45,7 @@ func TestPublishOutboxBatchSuccessfullyPublishesToKafka(t *testing.T) {
 			Convey("Then a batch of messages should have been sent to Kafka", func() {
 				cons := consumeFromKafkaUntilMessagesReceived([]testkafka.MessageExpectation{
 					{Msg: msg1, Headers: []*sarama.RecordHeader{{Key: []byte("x-event-id"), Value: []byte("1")}}, Key: []byte("bar")},
-					{Msg: msg2, Headers: []*sarama.RecordHeader{{Key: []byte("x-event-id"), Value: []byte("2")}}, Key: []byte("bar")},
+					{Msg: msg2, Headers: []*sarama.RecordHeader{{Key: []byte("x-event-id"), Value: []byte("2")}}, Key: []byte("baz")},
 					{Msg: msg3, Headers: []*sarama.RecordHeader{{Key: []byte("x-event-id"), Value: []byte("3")}}, Key: []byte("buzz")},
 				})
 				So(cons.MessagesFound, ShouldBeTrue)
