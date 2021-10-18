@@ -85,6 +85,7 @@ func TestNewRepositoryWithQueryProvider(t *testing.T) {
 	}
 }
 
+//gocyclo:ignore
 func TestRepository_GetBatch(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
