@@ -2,22 +2,24 @@ package test
 
 import (
 	"errors"
-	"inviqa/kafka-outbox-relay/outbox"
 	"reflect"
 	"sync"
 	"time"
+
+	"inviqa/kafka-outbox-relay/outbox"
 )
 
 type MockRepository struct {
 	sync.RWMutex
-	getBatchCallCount int
-	mockQueueSize     uint
-	mockTotalSize     uint
-	batchesToReturn   []*outbox.Batch
-	committed         map[*outbox.Batch]bool
-	batchesCommitted  []*outbox.Batch
-	returnError       bool
-	deletedRowsCount  int64
+	getBatchCallCount   int
+	mockQueueSize       uint
+	mockTotalSize       uint
+	batchesToReturn     []*outbox.Batch
+	committed           map[*outbox.Batch]bool
+	batchesCommitted    []*outbox.Batch
+	returnError         bool
+	deletedRowsCount    int64
+	returnNoEventsError bool
 }
 
 func NewMockRepository() *MockRepository {
@@ -32,9 +34,14 @@ func (mr *MockRepository) GetBatch() (*outbox.Batch, error) {
 	defer mr.RUnlock()
 	mr.getBatchCallCount++
 
+	if mr.returnNoEventsError {
+		return nil, outbox.ErrNoEvents
+	}
+
 	if mr.returnError {
 		return nil, errors.New("oops")
 	}
+
 
 	return mr.popBatch(), nil
 }
@@ -106,6 +113,10 @@ func (mr *MockRepository) GetBatchCallCount() int {
 
 func (mr *MockRepository) ReturnErrors() {
 	mr.returnError = true
+}
+
+func (mr *MockRepository) ReturnNoEventsError() {
+	mr.returnNoEventsError = true
 }
 
 func (mr *MockRepository) SetQueueSize(size uint) {

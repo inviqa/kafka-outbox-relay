@@ -28,7 +28,9 @@ func (p Poller) Poll(ctx context.Context, interval time.Duration) {
 	for {
 		batch, err := p.repo.GetBatch()
 		if err != nil {
-			log.Logger.WithError(err).Errorf("an unexpected error occurred when polling the outbox: %s", err)
+			if err != outbox.ErrNoEvents {
+				log.Logger.WithError(err).Errorf("an unexpected error occurred when polling the outbox: %s", err)
+			}
 			time.Sleep(interval)
 			continue
 		}
@@ -39,7 +41,5 @@ func (p Poller) Poll(ctx context.Context, interval time.Duration) {
 		case <-ctx.Done():
 			return
 		}
-
-		time.Sleep(interval)
 	}
 }
