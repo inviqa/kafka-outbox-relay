@@ -63,8 +63,7 @@ func (r Repository) GetBatch() (*Batch, error) {
 		return nil, errors.Errorf("outbox: error creating a batch of events in repository: %s", err)
 	}
 
-	// if there is an error determining the affected rows, we treat it as a failed query
-	// as the drivers we use never return an error value here
+	// the drivers we use never return an error value here
 	count, _ := res.RowsAffected()
 	if count < 1 {
 		return nil, ErrNoEvents
