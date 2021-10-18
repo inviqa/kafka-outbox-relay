@@ -54,7 +54,7 @@ func NewRepositoryWithQueryProvider(db *sql.DB, cfg *config.Config, qp queryProv
 // be returned as the error.
 func (r Repository) GetBatch() (*Batch, error) {
 	batchId := uuid.New()
-	stale := time.Now().Add(time.Duration(-10) * time.Minute) // TODO: make this configurable??
+	stale := time.Now().In(time.UTC).Add(time.Duration(-10) * time.Minute) // TODO: make this configurable??
 
 	upSql := r.queryProvider.BatchCreationSql(r.cfg.BatchSize)
 

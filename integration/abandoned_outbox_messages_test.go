@@ -23,7 +23,7 @@ func TestAbandonedMessagesAreCorrectlyPublishedAgain(t *testing.T) {
 		Convey("And there are some abandoned messages in the outbox", func() {
 			batchId := uuid.New()
 			beforeStaleThreshold := sql.NullTime{
-				Time:  time.Now().Add(time.Duration(-1) * time.Hour),
+				Time:  time.Now().In(time.UTC).Add(time.Duration(-1) * time.Hour),
 				Valid: true,
 			}
 			msg1 := &outbox.Message{
