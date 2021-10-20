@@ -85,140 +85,88 @@ func TestNewRepositoryWithQueryProvider(t *testing.T) {
 	}
 }
 
+//gocyclo:ignore
 func TestRepository_GetBatch(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
 	now := time.Now()
 	now2 := now.Add(time.Second * 1)
-
 	repo := NewRepositoryWithQueryProvider(db, &config.Config{DBOutboxTable: "outbox", BatchSize: 100}, &mockQueryProvider{})
-	mock.ExpectExec(`UPDATE outbox LIMIT 100`).
-		WillReturnResult(sqlmock.NewResult(1, 2))
 
-	msgBatchId := "f58e7c8a-e0d2-47fb-8111-eb0ae02ea21e"
+	msgBatchId := uuid.MustParse("f58e7c8a-e0d2-47fb-8111-eb0ae02ea21e")
 	rows := sqlmock.NewRows(columns).
 		AddRow(123, msgBatchId, now, now2, "event.product", "foo", "{}", 0, "key-0", "partition-key-0").
 		AddRow(124, msgBatchId, now, now2, "event.price", "bar", "{}", 1, "key-1", "partition-key-1")
 
-	mock.ExpectQuery("SELECT.* FROM outbox").WillReturnRows(rows)
+	t.Run("it gets a batch of events", func(t *testing.T) {
+		mock.ExpectExec(`UPDATE outbox LIMIT 100`).
+			WillReturnResult(sqlmock.NewResult(1, 2))
 
-	batch, err := repo.GetBatch()
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
-	}
+		mock.ExpectQuery("SELECT.* FROM outbox").WillReturnRows(rows)
 
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Fatalf("some SQL expectations were not met: %s", err)
-	}
+		got, err := repo.GetBatch()
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
 
-	if len(batch.Messages) != 2 {
-		t.Errorf("expected 2 messages in the batch, but got %d", len(batch.Messages))
-	}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Fatalf("some SQL expectations were not met: %s", err)
+		}
 
-	if batch.Id.String() == "" {
-		t.Error("empty batch ID received")
-	}
+		if got.Id.String() == "" {
+			t.Error("empty batch ID received")
+		}
 
-	exp1 := &Message{
-		Id: 123,
-		PushStartedAt: sql.NullTime{
-			Time:  now,
-			Valid: true,
-		},
-		PushCompletedAt: sql.NullTime{
-			Time:  now2,
-			Valid: true,
-		},
-		PayloadJson:    []byte("foo"),
-		PayloadHeaders: []byte("{}"),
-		Topic:          "event.product",
-		Key:            "key-0",
-		PartitionKey:   "partition-key-0",
-	}
+		exp := getExpectedMessageBatchForTest(msgBatchId, now, now2)
+		exp.Id = got.Id
+		if diff := deep.Equal(exp, got); diff != nil {
+			t.Error(diff)
+		}
+	})
 
-	exp2 := &Message{
-		Id: 124,
-		PushStartedAt: sql.NullTime{
-			Time:  now,
-			Valid: true,
-		},
-		PushCompletedAt: sql.NullTime{
-			Time:  now2,
-			Valid: true,
-		},
-		PayloadJson:    []byte("bar"),
-		PayloadHeaders: []byte("{}"),
-		PushAttempts:   1,
-		Topic:          "event.price",
-		Key:            "key-1",
-		PartitionKey:   "partition-key-1",
-	}
+	t.Run("returns special error when no events found", func(t *testing.T) {
+		mock.ExpectExec(`UPDATE outbox LIMIT 100`).
+			WillReturnResult(sqlmock.NewResult(1, 0))
 
-	assertMessageIsAsExpected(exp1, batch.Messages[0], t)
-	assertMessageIsAsExpected(exp2, batch.Messages[1], t)
-}
+		_, err := repo.GetBatch()
+		if !errors.Is(err, ErrNoEvents) {
+			t.Fatalf("expected error '%s' but got '%s'", ErrNoEvents, err)
+		}
 
-func TestRepository_GetBatchWithEmptyResult(t *testing.T) {
-	db, mock, _ := sqlmock.New()
-	defer db.Close()
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("some SQL expectations were not met: %s", err)
+		}
+	})
 
-	repo := NewRepositoryWithQueryProvider(db, &config.Config{DBOutboxTable: "outbox", BatchSize: 250}, &mockQueryProvider{})
-	mock.ExpectExec(`UPDATE outbox LIMIT 250`).
-		WillReturnResult(sqlmock.NewResult(1, 2))
+	t.Run("it handles error creating a batch", func(t *testing.T) {
+		mock.ExpectExec(`UPDATE outbox LIMIT 100`).
+			WillReturnError(errors.New("oops"))
 
-	rows := sqlmock.NewRows(columns)
-	mock.ExpectQuery("SELECT.* FROM outbox").WillReturnRows(rows)
+		_, err := repo.GetBatch()
+		if err == nil {
+			t.Error("expected an error but got nil")
+		}
 
-	batch, err := repo.GetBatch()
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
-	}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Fatalf("some SQL expectations were not met: %s", err)
+		}
+	})
 
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Fatalf("some SQL expectations were not met: %s", err)
-	}
+	t.Run("it handles error getting the created batch", func(t *testing.T) {
+		mock.ExpectExec(`UPDATE outbox LIMIT 100`).
+			WillReturnResult(sqlmock.NewResult(1, 2))
 
-	if len(batch.Messages) != 0 {
-		t.Errorf("expected 0 messages in the batch, but got %d", len(batch.Messages))
-	}
-}
+		mock.ExpectQuery("SELECT.* FROM outbox").WillReturnError(errors.New("oops"))
 
-func TestRepository_GetBatchWithUpdateError(t *testing.T) {
-	db, mock, _ := sqlmock.New()
-	defer db.Close()
+		_, err := repo.GetBatch()
+		if err == nil {
+			t.Error("expected an error but got nil")
+		}
 
-	repo := NewRepositoryWithQueryProvider(db, &config.Config{DBOutboxTable: "outbox", BatchSize: 250}, &mockQueryProvider{})
-	mock.ExpectExec(`UPDATE outbox LIMIT 250`).
-		WillReturnError(errors.New("oops"))
-
-	_, err := repo.GetBatch()
-	if err == nil {
-		t.Error("expected an error but got nil")
-	}
-
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Fatalf("some SQL expectations were not met: %s", err)
-	}
-}
-
-func TestRepository_GetBatchWithSelectError(t *testing.T) {
-	db, mock, _ := sqlmock.New()
-	defer db.Close()
-
-	repo := NewRepositoryWithQueryProvider(db, &config.Config{DBOutboxTable: "outbox", BatchSize: 250}, &mockQueryProvider{})
-	mock.ExpectExec(`UPDATE outbox LIMIT 250`).
-		WillReturnResult(sqlmock.NewResult(1, 2))
-
-	mock.ExpectQuery("SELECT.* FROM outbox").WillReturnError(errors.New("oops"))
-
-	_, err := repo.GetBatch()
-	if err == nil {
-		t.Error("expected an error but got nil")
-	}
-
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Fatalf("some SQL expectations were not met: %s", err)
-	}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Fatalf("some SQL expectations were not met: %s", err)
+		}
+	})
 }
 
 func TestRepository_CommitBatch(t *testing.T) {
@@ -466,10 +414,46 @@ func createMockBatchOfSuccessfulMessagesOnly(batchId uuid.UUID) *Batch {
 	return batch
 }
 
-func assertMessageIsAsExpected(exp, actual *Message, t *testing.T) {
-	exp.BatchId = actual.BatchId
-	if diff := deep.Equal(exp, actual); diff != nil {
-		t.Error(diff)
+func getExpectedMessageBatchForTest(batchId uuid.UUID, pushStarted time.Time, pushCompleted time.Time) *Batch {
+	return &Batch{
+		Id: batchId,
+		Messages: []*Message{
+			{
+				Id:      123,
+				BatchId: &batchId,
+				PushStartedAt: sql.NullTime{
+					Time:  pushStarted,
+					Valid: true,
+				},
+				PushCompletedAt: sql.NullTime{
+					Time:  pushCompleted,
+					Valid: true,
+				},
+				PayloadJson:    []byte("foo"),
+				PayloadHeaders: []byte("{}"),
+				Topic:          "event.product",
+				Key:            "key-0",
+				PartitionKey:   "partition-key-0",
+			},
+			{
+				Id:      124,
+				BatchId: &batchId,
+				PushStartedAt: sql.NullTime{
+					Time:  pushStarted,
+					Valid: true,
+				},
+				PushCompletedAt: sql.NullTime{
+					Time:  pushCompleted,
+					Valid: true,
+				},
+				PayloadJson:    []byte("bar"),
+				PayloadHeaders: []byte("{}"),
+				PushAttempts:   1,
+				Topic:          "event.price",
+				Key:            "key-1",
+				PartitionKey:   "partition-key-1",
+			},
+		},
 	}
 }
 

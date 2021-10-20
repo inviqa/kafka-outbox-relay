@@ -23,7 +23,7 @@ func TestAbandonedMessagesAreCorrectlyPublishedAgain(t *testing.T) {
 		Convey("And there are some abandoned messages in the outbox", func() {
 			batchId := uuid.New()
 			beforeStaleThreshold := sql.NullTime{
-				Time:  time.Now().Add(time.Duration(-1) * time.Hour),
+				Time:  time.Now().In(time.UTC).Add(time.Duration(-1) * time.Hour),
 				Valid: true,
 			}
 			msg1 := &outbox.Message{
@@ -43,7 +43,7 @@ func TestAbandonedMessagesAreCorrectlyPublishedAgain(t *testing.T) {
 			insertOutboxMessages([]*outbox.Message{msg1, msg2})
 
 			Convey("When the outbox relay service polls the database", func() {
-				pollForMessages(1)
+				waitForBatchToBePolled()
 				Convey("Then the batch of messages should have been sent to Kafka", func() {
 					cons := consumeFromKafkaUntilMessagesReceived([]testkafka.MessageExpectation{
 						{Msg: msg1, Headers: []*sarama.RecordHeader{}},

@@ -28,7 +28,7 @@ func TestPublishOutboxBatchSuccessfullyPublishesToKafka(t *testing.T) {
 			PayloadJson:    []byte(`{"foo": "baz"}`),
 			PayloadHeaders: []byte(`{"x-event-id": 2}`),
 			PartitionKey:   "foo",
-			Key:            "bar",
+			Key:            "baz",
 			Topic:          "testProductUpdate",
 		}
 		msg3 := &outbox.Message{
@@ -41,11 +41,11 @@ func TestPublishOutboxBatchSuccessfullyPublishesToKafka(t *testing.T) {
 		insertOutboxMessages([]*outbox.Message{msg1, msg2, msg3})
 
 		Convey("When the outbox relay service polls the database", func() {
-			pollForMessages(1)
+			waitForBatchToBePolled()
 			Convey("Then a batch of messages should have been sent to Kafka", func() {
 				cons := consumeFromKafkaUntilMessagesReceived([]testkafka.MessageExpectation{
 					{Msg: msg1, Headers: []*sarama.RecordHeader{{Key: []byte("x-event-id"), Value: []byte("1")}}, Key: []byte("bar")},
-					{Msg: msg2, Headers: []*sarama.RecordHeader{{Key: []byte("x-event-id"), Value: []byte("2")}}, Key: []byte("bar")},
+					{Msg: msg2, Headers: []*sarama.RecordHeader{{Key: []byte("x-event-id"), Value: []byte("2")}}, Key: []byte("baz")},
 					{Msg: msg3, Headers: []*sarama.RecordHeader{{Key: []byte("x-event-id"), Value: []byte("3")}}, Key: []byte("buzz")},
 				})
 				So(cons.MessagesFound, ShouldBeTrue)
@@ -70,19 +70,19 @@ func TestPublishOutboxBatchCorrectlyMarksFailedMessagesAsErrored(t *testing.T) {
 		msg1 := &outbox.Message{
 			PayloadJson:    []byte(`{"foo": "bar"}`),
 			PayloadHeaders: []byte(`{"x-event-id": 1}`),
-			Topic:          "testProductUpdate",
+			Topic:          "testProductCreate",
 			PushAttempts:   2,
 		}
 		msg2 := &outbox.Message{
 			PayloadJson:    []byte(`{"foo": "baz"}`),
 			PayloadHeaders: []byte(`{"x-event-id": 2}`),
-			Topic:          "testProductUpdate",
+			Topic:          "testProductCreate",
 			PushAttempts:   2,
 		}
 		msg3 := &outbox.Message{
 			PayloadJson:    []byte(`{"foo": "buzz"}`),
 			PayloadHeaders: []byte(`{"x-event-id": 3}`),
-			Topic:          "testProductUpdate",
+			Topic:          "testProductCreate",
 			PushAttempts:   2,
 		}
 
@@ -92,7 +92,7 @@ func TestPublishOutboxBatchCorrectlyMarksFailedMessagesAsErrored(t *testing.T) {
 		insertOutboxMessages([]*outbox.Message{msg1, msg2, msg3})
 
 		Convey("When the outbox relay service polls the database", func() {
-			pollForMessages(1)
+			waitForBatchToBePolled()
 			Convey("Then the batch of messages should have been sent to Kafka", func() {
 				cons := consumeFromKafkaUntilMessagesReceived([]testkafka.MessageExpectation{
 					{Msg: msg2, Headers: []*sarama.RecordHeader{{Key: []byte("x-event-id"), Value: []byte("2")}}},

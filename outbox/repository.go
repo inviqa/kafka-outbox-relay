@@ -9,10 +9,15 @@ import (
 	s "inviqa/kafka-outbox-relay/outbox/data/sql"
 
 	"github.com/google/uuid"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
-var columns = []string{"id", "batch_id", "push_started_at", "push_completed_at", "topic", "payload_json", "payload_headers", "push_attempts", "key", "partition_key"}
+var (
+	ErrNoEvents = errors.New("no events in the batch")
+
+	columns = []string{"id", "batch_id", "push_started_at", "push_completed_at", "topic", "payload_json", "payload_headers", "push_attempts", "key", "partition_key"}
+)
 
 type queryProvider interface {
 	BatchCreationSql(batchSize int) string
@@ -42,21 +47,31 @@ func NewRepositoryWithQueryProvider(db *sql.DB, cfg *config.Config, qp queryProv
 	}
 }
 
+// GetBatch will create a new batch of records and then return them. It does
+// so in a way that prevents any other processes picking up the same batch of
+// events to avoid duplicate processing.
+// If no events are created in the batch then the special ErrNoEvents value will
+// be returned as the error.
 func (r Repository) GetBatch() (*Batch, error) {
 	batchId := uuid.New()
-	stale := time.Now().Add(time.Duration(-10) * time.Minute) // TODO: make this configurable??
+	stale := time.Now().In(time.UTC).Add(time.Duration(-10) * time.Minute) // TODO: make this configurable??
 
 	upSql := r.queryProvider.BatchCreationSql(r.cfg.BatchSize)
 
-	_, err := r.db.Exec(upSql, batchId, stale, 0)
-
+	res, err := r.db.Exec(upSql, batchId, stale, 0)
 	if err != nil {
-		return nil, err
+		return nil, errors.Errorf("outbox: error creating a batch of events in repository: %s", err)
+	}
+
+	// the drivers we use never return an error value here
+	count, _ := res.RowsAffected()
+	if count < 1 {
+		return nil, ErrNoEvents
 	}
 
 	rows, err := r.db.Query(r.queryProvider.BatchFetchSql(), batchId)
 	if err != nil {
-		return nil, err
+		return nil, errors.Errorf("outbox: error fetching created event batch in repository: %s", err)
 	}
 
 	batch := &Batch{
@@ -68,7 +83,7 @@ func (r Repository) GetBatch() (*Batch, error) {
 		msg := &Message{}
 		err := rows.Scan(&msg.Id, &msg.BatchId, &msg.PushStartedAt, &msg.PushCompletedAt, &msg.Topic, &msg.PayloadJson, &msg.PayloadHeaders, &msg.PushAttempts, &msg.Key, &msg.PartitionKey)
 		if err != nil {
-			return nil, err
+			return nil, errors.Errorf("outbox: error scanning event result into memory in repository: %s", err)
 		}
 		batch.Messages = append(batch.Messages, msg)
 	}

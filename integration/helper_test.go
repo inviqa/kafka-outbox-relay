@@ -53,6 +53,8 @@ func init() {
 
 	repo = outbox.NewRepository(db, cfg)
 	publishedDeleter = repo
+
+	go pollForMessages()
 }
 
 func returnErrorFromSyncProducerForMessage(msgBody string, err error) {
@@ -67,7 +69,6 @@ func consumeFromKafkaUntilMessagesReceived(exp []testkafka.MessageExpectation) *
 	toFind := make([]testkafka.MessageExpectation, len(exp))
 	copy(toFind, exp)
 	cons := &testkafka.ConsumerHandler{
-		MessagesFound: false,
 		Consume: func(consumed *sarama.ConsumerMessage, c *testkafka.ConsumerHandler) {
 			j := 0
 			for _, m := range toFind {
@@ -90,12 +91,6 @@ func consumeFromKafkaUntilMessagesReceived(exp []testkafka.MessageExpectation) *
 		log.Logger.WithError(err).Panic("error occurred creating Kafka consumer group client")
 	}
 
-	go func() {
-		for err := range cl.Errors() {
-			log.Logger.WithError(err).Errorf("error occurred in consumer group")
-		}
-	}()
-
 	topics := testkafka.GetTopicsFromMessageExpectations(exp)
 	go func() {
 		for {
@@ -113,6 +108,9 @@ func consumeFromKafkaUntilMessagesReceived(exp []testkafka.MessageExpectation) *
 		for {
 			if cons.MessagesFound {
 				doneCh <- true
+			}
+			if ctx.Err() != nil {
+				return
 			}
 		}
 	}()
@@ -176,13 +174,14 @@ func getConfig() *config.Config {
 	return cfg
 }
 
-func pollForMessages(expBatches int) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*15*time.Duration(expBatches))
-	defer cancel()
+func pollForMessages() {
 	batchCh := make(chan *outbox.Batch, 10)
 
-	go poller.New(repo, batchCh).Poll(context.Background(), time.Millisecond*10)
+	go poller.New(repo, batchCh).Poll(context.Background(), time.Millisecond*100)
 
-	proc := processor.NewBatchProcessor(repo, pub)
-	proc.ListenAndProcess(ctx, batchCh)
+	processor.NewBatchProcessor(repo, pub).ListenAndProcess(context.Background(), batchCh)
+}
+
+func waitForBatchToBePolled() {
+	time.Sleep(time.Millisecond * 100)
 }
