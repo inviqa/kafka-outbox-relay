@@ -173,11 +173,11 @@ func getConfig() *config.Config {
 }
 
 func pollForMessages(expBatches int) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*15*time.Duration(expBatches))
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*150*time.Duration(expBatches))
 	defer cancel()
 	batchCh := make(chan *outbox.Batch, 10)
 
-	go poller.New(repo, batchCh).Poll(ctx, time.Millisecond*10)
+	go poller.New(repo, batchCh).Poll(ctx, time.Millisecond*100)
 
 	proc := processor.NewBatchProcessor(repo, pub)
 	proc.ListenAndProcess(ctx, batchCh)
