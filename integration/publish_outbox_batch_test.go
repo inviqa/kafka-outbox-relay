@@ -41,7 +41,7 @@ func TestPublishOutboxBatchSuccessfullyPublishesToKafka(t *testing.T) {
 		insertOutboxMessages([]*outbox.Message{msg1, msg2, msg3})
 
 		Convey("When the outbox relay service polls the database", func() {
-			pollForMessages(1)
+			waitForBatchToBePolled()
 			Convey("Then a batch of messages should have been sent to Kafka", func() {
 				cons := consumeFromKafkaUntilMessagesReceived([]testkafka.MessageExpectation{
 					{Msg: msg1, Headers: []*sarama.RecordHeader{{Key: []byte("x-event-id"), Value: []byte("1")}}, Key: []byte("bar")},
@@ -92,7 +92,7 @@ func TestPublishOutboxBatchCorrectlyMarksFailedMessagesAsErrored(t *testing.T) {
 		insertOutboxMessages([]*outbox.Message{msg1, msg2, msg3})
 
 		Convey("When the outbox relay service polls the database", func() {
-			pollForMessages(1)
+			waitForBatchToBePolled()
 			Convey("Then the batch of messages should have been sent to Kafka", func() {
 				cons := consumeFromKafkaUntilMessagesReceived([]testkafka.MessageExpectation{
 					{Msg: msg2, Headers: []*sarama.RecordHeader{{Key: []byte("x-event-id"), Value: []byte("2")}}},

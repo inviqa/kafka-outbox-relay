@@ -24,14 +24,14 @@ type Poller struct {
 	repo repository
 }
 
-func (p Poller) Poll(ctx context.Context, interval time.Duration) {
+func (p Poller) Poll(ctx context.Context, backoff time.Duration) {
 	for {
 		batch, err := p.repo.GetBatch()
 		if err != nil {
 			if err != outbox.ErrNoEvents {
 				log.Logger.WithError(err).Errorf("an unexpected error occurred when polling the outbox: %s", err)
 			}
-			time.Sleep(interval)
+			time.Sleep(backoff)
 			continue
 		}
 

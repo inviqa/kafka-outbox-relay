@@ -43,7 +43,7 @@ func TestAbandonedMessagesAreCorrectlyPublishedAgain(t *testing.T) {
 			insertOutboxMessages([]*outbox.Message{msg1, msg2})
 
 			Convey("When the outbox relay service polls the database", func() {
-				pollForMessages(1)
+				waitForBatchToBePolled()
 				Convey("Then the batch of messages should have been sent to Kafka", func() {
 					cons := consumeFromKafkaUntilMessagesReceived([]testkafka.MessageExpectation{
 						{Msg: msg1, Headers: []*sarama.RecordHeader{}},

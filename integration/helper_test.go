@@ -53,6 +53,8 @@ func init() {
 
 	repo = outbox.NewRepository(db, cfg)
 	publishedDeleter = repo
+
+	go pollForMessages()
 }
 
 func returnErrorFromSyncProducerForMessage(msgBody string, err error) {
@@ -172,13 +174,14 @@ func getConfig() *config.Config {
 	return cfg
 }
 
-func pollForMessages(expBatches int) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*150*time.Duration(expBatches))
-	defer cancel()
+func pollForMessages() {
 	batchCh := make(chan *outbox.Batch, 10)
 
-	go poller.New(repo, batchCh).Poll(ctx, time.Millisecond*100)
+	go poller.New(repo, batchCh).Poll(context.Background(), time.Millisecond*100)
 
-	proc := processor.NewBatchProcessor(repo, pub)
-	proc.ListenAndProcess(ctx, batchCh)
+	processor.NewBatchProcessor(repo, pub).ListenAndProcess(context.Background(), batchCh)
+}
+
+func waitForBatchToBePolled() {
+	time.Sleep(time.Millisecond * 100)
 }
