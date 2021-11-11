@@ -91,3 +91,6 @@ attributes:
       version: 11.7
     mysql:
       version: 8
+  pipeline:
+    publish:
+      enabled: yes
