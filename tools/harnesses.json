@@ -1,0 +1,8 @@
+{
+  "inviqa/go": {
+    "v0.12.0": {
+      "type": "tar.gz",
+      "url": "https://github.com/inviqa/harness-go/archive/cross-platform-builds.tar.gz"
+    }
+  }
+}

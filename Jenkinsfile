@@ -1,6 +1,8 @@
 pipeline {
     agent { label "my127ws" }
     environment {
+        COMPOSE_DOCKER_CLI_BUILD = "1"
+        DOCKER_BUILDKIT = "1"
         MY127WS_KEY = credentials('kafka-outbox-relay-my127ws-key')
         MY127WS_ENV = "pipeline"
     }
