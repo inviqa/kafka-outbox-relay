@@ -12,7 +12,7 @@ command('external-images pull'):
       passthru("echo $pass | $command");
     }
 
-    var_dump($env);
+    var_dump($_ENV);
     exit;
     $confArgs = [];
     if (strlen(@$env['CI']) > 0 || strlen(@$env['BUILD_ID']) > 0) {
