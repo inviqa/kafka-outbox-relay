@@ -10,6 +10,8 @@ pipeline {
     stages {
         stage('Setup') {
             steps {
+                sh 'env'
+                error('manually exit')
                 script {
                     env.CONTEXT = sh(script: 'docker buildx create --use', returnStdout: true).trim()
                 }
