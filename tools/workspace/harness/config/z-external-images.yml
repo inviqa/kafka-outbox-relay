@@ -12,10 +12,8 @@ command('external-images pull'):
       passthru("echo $pass | $command");
     }
 
-    var_dump(getenv('CI'));
-    exit;
     $confArgs = [];
-    if (strlen(@$env['CI']) > 0 || strlen(@$env['BUILD_ID']) > 0) {
+    if (strlen(getenv('CI')) > 0 || strlen(getenv('BUILD_ID')) > 0) {
       $confArgs[] = "--skip-exists";
     }
     $confArgs = join(' ', array_map('escapeshellarg', $confArgs));
