@@ -38,7 +38,7 @@ pipeline {
             when {
                 not { triggeredBy 'TimerTrigger' }
                 anyOf {
-                    branch 'multi-platform-builds'
+                    branch 'master'
                 }
             }
             steps {
