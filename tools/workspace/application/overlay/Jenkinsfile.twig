@@ -28,7 +28,6 @@ pipeline {
         }
         stage('Build for production') {
             steps {
-                sh 'ws docker build-context'
                 sh 'ws build-prod'
             }
         }
