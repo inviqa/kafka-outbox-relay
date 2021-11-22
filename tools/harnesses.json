@@ -2,7 +2,7 @@
   "inviqa/go": {
     "v0.12.0": {
       "type": "tar.gz",
-      "url": "https://github.com/inviqa/harness-go/archive/master.tar.gz"
+      "url": "https://github.com/inviqa/harness-go/archive/multi-platform-experimental.tar.gz"
     }
   }
 }
