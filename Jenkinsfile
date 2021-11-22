@@ -8,9 +8,6 @@ pipeline {
     }
     triggers { cron(env.BRANCH_NAME == '' ? 'H H(0-6) * * *' : '') }
     stages {
-        stage('Setup') {
-            steps { sh 'ws docker build-context' }
-        }
         stage('Build') {
             steps { sh 'ws install' }
         }
@@ -31,6 +28,7 @@ pipeline {
         }
         stage('Build for production') {
             steps {
+                sh 'ws docker build-context'
                 sh 'ws build-prod'
             }
         }
