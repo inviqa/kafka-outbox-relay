@@ -9,11 +9,7 @@ pipeline {
     triggers { cron(env.BRANCH_NAME == '' ? 'H H(0-6) * * *' : '') }
     stages {
         stage('Setup') {
-            steps {
-                script {
-                    env.CONTEXT = sh(script: 'docker buildx create --use', returnStdout: true).trim()
-                }
-            }
+            steps { sh 'ws docker build-context' }
         }
         stage('Build') {
             steps { sh 'ws install' }
@@ -57,7 +53,6 @@ pipeline {
     post {
         always {
             sh 'ws destroy'
-            sh 'docker buildx rm "${CONTEXT}"'
             cleanWs()
         }
     }
