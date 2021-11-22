@@ -30,8 +30,8 @@ func (m PostgresQueryProvider) MessageErroredUpdateSql(maxPushAttempts int) stri
 func (m PostgresQueryProvider) BatchCreationSql(batchSize int) string {
 	q := `UPDATE %s SET batch_id = $1, push_started_at = NOW()
 		WHERE id IN(
-			SELECT id FROM %s WHERE (batch_id IS NULL AND push_started_at IS NULL) OR
-		(batch_id IS NOT NULL AND push_completed_at IS NULL AND push_started_at < $2) AND errored = $3 LIMIT %d)`
+			SELECT id FROM %s WHERE ((batch_id IS NULL AND push_started_at IS NULL) OR
+		(batch_id IS NOT NULL AND push_completed_at IS NULL AND push_started_at < $2)) AND errored = $3 LIMIT %d)`
 
 	return fmt.Sprintf(q, m.Table, m.Table, batchSize)
 }

@@ -2,8 +2,9 @@ package prometheus
 
 import (
 	"context"
-	"inviqa/kafka-outbox-relay/log"
 	"time"
+
+	"inviqa/kafka-outbox-relay/log"
 
 	prom "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -27,7 +28,7 @@ func ObserveQueueSize(sizer queueSizer, ctx context.Context) {
 		size, err := sizer.GetQueueSize()
 		if err != nil {
 			log.Logger.WithError(err).Error("an error occurred determining the size of the queue")
-			time.Sleep(time.Second * 1)
+			time.Sleep(backoffTime)
 			continue
 		}
 
@@ -37,7 +38,7 @@ func ObserveQueueSize(sizer queueSizer, ctx context.Context) {
 		default:
 			outboxQueueSize.Set(float64(size))
 
-			time.Sleep(time.Second * 1)
+			time.Sleep(backoffTime)
 		}
 	}
 }
