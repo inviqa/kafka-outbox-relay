@@ -1,6 +1,8 @@
 pipeline {
     agent { label "my127ws" }
     environment {
+        COMPOSE_DOCKER_CLI_BUILD = {{ @('jenkins.docker.buildkit.enabled') ? '1' : '0' }}
+        DOCKER_BUILDKIT = {{ @('jenkins.docker.buildkit.enabled') ? '1' : '0' }}
         MY127WS_KEY = credentials('{{ @('jenkins.credentials.my127ws_key') }}')
         MY127WS_ENV = "pipeline"
     }
@@ -31,8 +33,19 @@ pipeline {
         }
 {% if @('pipeline.publish.enabled') == 'yes' %}
         stage('Publish') {
-            when { not { triggeredBy 'TimerTrigger' } }
-            steps { sh 'ws app publish' }
+            environment {
+                DOCKER_REGISTRY_CREDS = credentials('inviqa-quay-registry-credentials')
+            }
+            when {
+                not { triggeredBy 'TimerTrigger' }
+                anyOf {
+                    branch 'master'
+                }
+            }
+            steps {
+                milestone(20)
+                sh 'ws app publish'
+            }
         }
 {% endif %}
 {% if @('pipeline.preview.enabled') == 'yes' %}

@@ -1,7 +1,10 @@
 workspace('kafka-outbox-relay'):
   description: local workspace for kafka-outbox-relay.
-  harness: inviqa/go:v0.11
+  harness: inviqa/go:v0.13
   overlay: tools/workspace
+
+# todo: remove when merged upstream
+harness.repository.source('local'): ./tools/harnesses.json
 
 command('go test integration all'):
   env:
@@ -40,12 +43,20 @@ attributes:
     binary: app
     services: [kafka, mysql, postgres]
     bundle_certs: yes
-    major_version: v1
   docker:
     registry:
       username: "= env('DOCKER_REGISTRY_CREDS_USR') ?: ''"
       password: "= env('DOCKER_REGISTRY_CREDS_PSW') ?: ''"
     repository: quay.io/inviqa_images/kafka-outbox-relay
+    experimental:
+      multiplatform_build:
+        enabled: "yes"
+        platforms:
+        - "linux/amd64"
+        - "linux/arm64"
+    production:
+      additional_tags:
+      - v1
   kafka:
     host: kafka:29092
     publish_attempts: 3
@@ -83,3 +94,6 @@ attributes:
       version: 11.7
     mysql:
       version: 8
+  pipeline:
+    publish:
+      enabled: yes
