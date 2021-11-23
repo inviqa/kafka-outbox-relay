@@ -1,6 +1,6 @@
 workspace('kafka-outbox-relay'):
   description: local workspace for kafka-outbox-relay.
-  harness: inviqa/go:v0.12
+  harness: inviqa/go:v0.13
   overlay: tools/workspace
 
 # todo: remove when merged upstream
