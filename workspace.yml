@@ -54,8 +54,9 @@ attributes:
         platforms:
         - "linux/amd64"
         - "linux/arm64"
-        additional_tags:
-        - v1
+    production:
+      additional_tags:
+      - v1
   kafka:
     host: kafka:29092
     publish_attempts: 3
