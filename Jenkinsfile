@@ -36,7 +36,7 @@ pipeline {
             when {
                 not { triggeredBy 'TimerTrigger' }
                 anyOf {
-                    branch 'fix-publish'
+                    branch 'PR-37'
                 }
             }
             steps {
