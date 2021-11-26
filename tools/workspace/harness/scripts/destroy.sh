@@ -5,7 +5,7 @@ function destroy() {
 
   builder=$(docker buildx inspect | grep Name: | head -n 1 | awk '{print $2}')
   if [[ "$builder" != "" ]]; then
-    run docker buildx rm "${CONTEXT}"
+    run docker buildx rm "${builder}"
   fi
 
   passthru ws cleanup built-images
