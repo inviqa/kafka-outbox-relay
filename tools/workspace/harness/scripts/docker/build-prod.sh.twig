@@ -4,7 +4,8 @@ set -o pipefail
 
 function docker_build_prod {
   if [ "{{ @('docker.experimental.multiplatform_build.enabled') }}" == "yes" ]; then
-    CONTEXT="default" passthru docker buildx bake --file docker-bake.hcl
+    docker buildx create --use
+    passthru docker buildx bake --file docker-bake.hcl
   else
     passthru docker build --tag {{ @('docker.repository') }}:{{ @('docker.tagPrefix') }}{{ @('app.version') }} \
 {% for config in @('git.config_global')|filter(v => v is not empty and ((v.when is not defined) or v.when)) %}
@@ -14,13 +15,6 @@ function docker_build_prod {
 {% endfor %}
         --file .my127ws/docker/image/app/Dockerfile --target prod .
   fi
-}
-
-function clean() {
-    context="$1"
-    if [[ "$context" != "" ]]; then
-      docker buildx rm "${CONTEXT}"
-    fi
 }
 
 docker_build_prod
