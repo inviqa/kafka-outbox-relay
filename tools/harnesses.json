@@ -2,7 +2,7 @@
   "inviqa/go": {
     "v0.13.0": {
       "type": "tar.gz",
-      "url": "https://github.com/inviqa/harness-go/archive/fix-image-publish.tar.gz"
+      "url": "https://github.com/inviqa/harness-go/archive/master.tar.gz"
     }
   }
 }
