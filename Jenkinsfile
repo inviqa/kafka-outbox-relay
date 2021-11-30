@@ -36,7 +36,7 @@ pipeline {
             when {
                 not { triggeredBy 'TimerTrigger' }
                 anyOf {
-                    branch 'PR-37'
+                    branch 'master'
                 }
             }
             steps {
