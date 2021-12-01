@@ -3,9 +3,6 @@ workspace('kafka-outbox-relay'):
   harness: inviqa/go:v0.13
   overlay: tools/workspace
 
-# todo: remove when merged upstream
-harness.repository.source('local'): ./tools/harnesses.json
-
 command('go test integration all'):
   env:
     COMPOSE_PROJECT_NAME: = @('namespace')
@@ -58,7 +55,6 @@ attributes:
       additional_tags:
       - v1
   kafka:
-    host: kafka:29092
     publish_attempts: 3
   database:
     host: mysql
@@ -67,29 +63,28 @@ attributes:
     pass: kafka-outbox-relay
     name: kafka-outbox-relay
     table_name: kafka_outbox
-    driver: mysql
+    platform: mysql
   go:
-    version: 1.16
+    version: 1.17
     module_name: inviqa/kafka-outbox-relay
     modules:
       before:
         steps:
           - /lib/install-rds-certs.sh
-          - go install github.com/securego/gosec/v2/cmd/gosec@latest
   jenkins:
     credentials:
       my127ws_key: kafka-outbox-relay-my127ws-key
   services:
     app:
       environment:
-        KAFKA_HOST: = @('kafka.host')
+        KAFKA_HOST: = @('services.kafka.host')
         KAFKA_PUBLISH_ATTEMPTS: =@('kafka.publish_attempts')
         DB_HOST: = @('database.host')
         DB_PORT: = @('database.port')
         DB_USER: = @('database.user')
         DB_PASS: = @('database.pass')
         DB_NAME: = @('database.name')
-        DB_DRIVER: = @('database.driver')
+        DB_DRIVER: = @('database.platform')
     postgres:
       version: 11.7
     mysql:
