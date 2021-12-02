@@ -4,7 +4,9 @@ import (
 	"net/http"
 	"testing"
 
+	"inviqa/kafka-outbox-relay/config"
 	"inviqa/kafka-outbox-relay/job/test"
+	"inviqa/kafka-outbox-relay/outbox/data"
 	outboxtest "inviqa/kafka-outbox-relay/outbox/test"
 )
 
@@ -17,7 +19,7 @@ func TestNewCleanup(t *testing.T) {
 }
 
 func TestNewCleanupWithDefaultClient(t *testing.T) {
-	j := newCleanupWithDefaultClient()
+	j := newCleanupWithDefaults(data.DB{}, &config.Config{})
 	if j == nil {
 		t.Errorf("received nil instead of cleanup job")
 	}
@@ -81,10 +83,21 @@ func TestCleanup_ExecuteWithHttpClientError(t *testing.T) {
 	}
 }
 
+func newCleanup(cl httpPoster) *cleanup {
+	return &cleanup{
+		SidecarQuitter: SidecarQuitter{
+			Client: cl,
+		},
+	}
+}
+
 func newTestCleanup(cl *test.MockHttpClient, repo *outboxtest.MockRepository) *cleanup {
-	j := newCleanup(cl)
-	j.deleterFactory = testDeleterFactory(repo)
-	return j
+	return &cleanup{
+		SidecarQuitter: SidecarQuitter{
+			Client: cl,
+		},
+		deleterFactory: testDeleterFactory(repo),
+	}
 }
 
 func testDeleterFactory(mock *outboxtest.MockRepository) func() publishedDeleter {

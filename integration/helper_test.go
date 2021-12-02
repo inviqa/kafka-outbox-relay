@@ -31,13 +31,14 @@ const (
 )
 
 var (
-	cfg              *config.Config
-	db               *sql.DB
-	syncProducer     *testkafka.SyncProducer
-	repo             outbox.Repository
-	publishedDeleter outbox.Repository
-	server           *httptest.Server
-	pub              kafka.Publisher
+	cfg          *config.Config
+	dbs          data.DBs
+	db           *sql.DB
+	dbCfg        config.Database
+	syncProducer *testkafka.SyncProducer
+	repo         outbox.Repository
+	server       *httptest.Server
+	pub          kafka.Publisher
 )
 
 func init() {
@@ -47,13 +48,12 @@ func init() {
 	syncProducer = testkafka.NewSyncProducer(cfg.KafkaHost)
 	pub = kafka.NewPublisherWithProducer(syncProducer)
 
-	dbs, _ := data.NewDBs(cfg)
-	db = dbs[0]
+	dbs, _ = data.NewDBs(cfg)
+	db = dbs[0].Connection()
+	repo = outbox.NewRepository(dbs[0], cfg)
+
 	ensureOutboxTableExists()
 	purgeOutboxTable()
-
-	repo = outbox.NewRepository(db, cfg)
-	publishedDeleter = repo
 
 	go pollForMessages()
 }
@@ -152,7 +152,7 @@ func setupConfig() *config.Config {
 		envs[pts[0]] = pts[1]
 	}
 
-	dbCfg := config.Database{
+	dbCfg = config.Database{
 		User:        "kafka-outbox-relay",
 		Password:    "kafka-outbox-relay",
 		Name:        "kafka-outbox-relay",

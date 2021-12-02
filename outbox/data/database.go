@@ -76,10 +76,7 @@ func NewDBs(cfg *config.Config) (DBs, func()) {
 		db.SetConnMaxLifetime(maxConnectionLifetime)
 
 		connectToDatabase(dbCfg, db, cfg.SkipMigrations)
-		dbs[i] = DB{
-			db:  db,
-			cfg: dbCfg,
-		}
+		dbs[i] = NewDB(db, dbCfg)
 	}
 
 	cleanup := func() {

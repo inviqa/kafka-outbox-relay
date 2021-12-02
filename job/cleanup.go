@@ -6,6 +6,7 @@ import (
 
 	"inviqa/kafka-outbox-relay/config"
 	"inviqa/kafka-outbox-relay/log"
+	"inviqa/kafka-outbox-relay/outbox"
 	"inviqa/kafka-outbox-relay/outbox/data"
 )
 
@@ -21,13 +22,13 @@ type cleanup struct {
 func RunCleanup(dbs data.DBs, cfg *config.Config) int {
 	var exitCode int
 	dbs.Each(func(db data.DB) {
-		exitCode += doCleanup(cfg)
+		exitCode += doCleanup(db, cfg)
 	})
 	return normalizeExitCode(exitCode)
 }
 
-func doCleanup(cfg *config.Config) int {
-	j := newCleanupWithDefaultClient()
+func doCleanup(db data.DB, cfg *config.Config) int {
+	j := newCleanupWithDefaults(db, cfg)
 
 	if cfg.SidecarProxyUrl != "" {
 		j.EnableSideCarProxyQuit(cfg.SidecarProxyUrl)
@@ -40,18 +41,13 @@ func doCleanup(cfg *config.Config) int {
 	return 0
 }
 
-func newCleanupWithDefaultClient() *cleanup {
+func newCleanupWithDefaults(db data.DB, cfg *config.Config) *cleanup {
 	return &cleanup{
+		deleterFactory: func() publishedDeleter {
+			return outbox.NewRepository(db, cfg)
+		},
 		SidecarQuitter: SidecarQuitter{
 			Client: http.DefaultClient,
-		},
-	}
-}
-
-func newCleanup(cl httpPoster) *cleanup {
-	return &cleanup{
-		SidecarQuitter: SidecarQuitter{
-			Client: cl,
 		},
 	}
 }
