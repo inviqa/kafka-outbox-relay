@@ -1,26 +1,23 @@
 package job
 
 import (
-	"inviqa/kafka-outbox-relay/job/test"
-	outboxtest "inviqa/kafka-outbox-relay/outbox/test"
 	"net/http"
 	"testing"
+
+	"inviqa/kafka-outbox-relay/job/test"
+	outboxtest "inviqa/kafka-outbox-relay/outbox/test"
 )
 
 func TestNewCleanup(t *testing.T) {
-	repo := outboxtest.NewMockRepository()
 	cl := &http.Client{}
 
-	j := newCleanup(repo, cl)
-	if j == nil {
+	if newCleanup(cl) == nil {
 		t.Errorf("received nil instead of cleanup job")
 	}
 }
 
 func TestNewCleanupWithDefaultClient(t *testing.T) {
-	repo := outboxtest.NewMockRepository()
-
-	j := newCleanupWithDefaultClient(repo)
+	j := newCleanupWithDefaultClient()
 	if j == nil {
 		t.Errorf("received nil instead of cleanup job")
 	}
@@ -30,15 +27,10 @@ func TestCleanup_Execute(t *testing.T) {
 	repo := outboxtest.NewMockRepository()
 	repo.SetDeletedRowsCount(100)
 	cl := test.NewMockHttpClient()
-	j := newCleanup(repo, cl)
-	rows, err := j.Execute()
+	j := newTestCleanup(cl, repo)
 
-	if err != nil {
+	if err := j.Execute(); err != nil {
 		t.Errorf("unexpected error received: %s", err)
-	}
-
-	if rows != 100 {
-		t.Errorf("expected 100 affected rows, but got %d", rows)
 	}
 
 	if len(cl.SentReqs) > 0 {
@@ -50,16 +42,11 @@ func TestCleanup_ExecuteWithSidecarProxyQuit(t *testing.T) {
 	repo := outboxtest.NewMockRepository()
 	repo.SetDeletedRowsCount(99)
 	cl := test.NewMockHttpClient()
-	j := newCleanup(repo, cl)
+	j := newTestCleanup(cl, repo)
 	j.EnableSideCarProxyQuit("http://localhost:9090")
-	rows, err := j.Execute()
 
-	if err != nil {
+	if err := j.Execute(); err != nil {
 		t.Errorf("unexpected error received: %s", err)
-	}
-
-	if rows != 99 {
-		t.Errorf("expected 99 affected rows, but got %d", rows)
 	}
 
 	if cl.SentReqs["http://localhost:9090/quitquitquit"] == false {
@@ -71,10 +58,9 @@ func TestCleanup_ExecuteWithRepoError(t *testing.T) {
 	repo := outboxtest.NewMockRepository()
 	repo.ReturnErrors()
 	cl := test.NewMockHttpClient()
-	j := newCleanup(repo, cl)
-	_, err := j.Execute()
+	j := newTestCleanup(cl, repo)
 
-	if err == nil {
+	if err := j.Execute(); err == nil {
 		t.Error("expected an error, but got nil")
 	}
 
@@ -87,11 +73,22 @@ func TestCleanup_ExecuteWithHttpClientError(t *testing.T) {
 	repo := outboxtest.NewMockRepository()
 	cl := test.NewMockHttpClient()
 	cl.ReturnErrors()
-	j := newCleanup(repo, cl)
+	j := newTestCleanup(cl, repo)
 	j.EnableSideCarProxyQuit("http://localhost:15000/")
-	_, err := j.Execute()
 
-	if err == nil {
+	if err := j.Execute(); err == nil {
 		t.Error("expected an error, but got nil")
+	}
+}
+
+func newTestCleanup(cl *test.MockHttpClient, repo *outboxtest.MockRepository) *cleanup {
+	j := newCleanup(cl)
+	j.deleterFactory = testDeleterFactory(repo)
+	return j
+}
+
+func testDeleterFactory(mock *outboxtest.MockRepository) func() publishedDeleter {
+	return func() publishedDeleter {
+		return mock
 	}
 }

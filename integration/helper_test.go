@@ -42,13 +42,13 @@ var (
 
 func init() {
 	server = httptest.NewServer(h.GetHttpTestHandlerFunc())
-	cfg = getConfig()
+	setupConfig()
 
 	syncProducer = testkafka.NewSyncProducer(cfg.KafkaHost)
 	pub = kafka.NewPublisherWithProducer(syncProducer)
 
-	db = data.NewDB(cfg)
-	data.MigrateDatabase(db, cfg)
+	dbs, _ := data.NewDBs(cfg)
+	db = dbs[0]
 	ensureOutboxTableExists()
 	purgeOutboxTable()
 
@@ -132,22 +132,18 @@ func consumeFromKafkaUntilMessagesReceived(exp []testkafka.MessageExpectation) *
 	return cons
 }
 
-func getConfig() *config.Config {
+func setupConfig() *config.Config {
 	var runInDocker bool
 	if os.Getenv("GO_TEST_MODE") == testModeDocker {
 		runInDocker = true
 	}
 
-	cfg := &config.Config{
-		DBOutboxTable:        "kafka_outbox_test",
+	cfg = &config.Config{
 		PollFrequencyMs:      1000,
 		SidecarProxyUrl:      server.URL,
 		KafkaPublishAttempts: 3,
 		BatchSize:            250,
 		KafkaHost:            []string{"localhost:9092"},
-		DBUser:               "kafka-outbox-relay",
-		DBPass:               "kafka-outbox-relay",
-		DBName:               "kafka-outbox-relay",
 	}
 
 	envs := map[string]string{}
@@ -156,21 +152,29 @@ func getConfig() *config.Config {
 		envs[pts[0]] = pts[1]
 	}
 
+	dbCfg := config.Database{
+		User:        "kafka-outbox-relay",
+		Password:    "kafka-outbox-relay",
+		Name:        "kafka-outbox-relay",
+		OutboxTable: "kafka_outbox_test",
+	}
 	if envs["DB_DRIVER"] == string(config.MySQL) {
-		cfg.DBDriver = config.MySQL
-		cfg.DBPort = 13306
+		dbCfg.Driver = config.MySQL
+		dbCfg.Port = 13306
 	} else {
-		cfg.DBDriver = config.Postgres
-		cfg.DBPort = 15432
+		dbCfg.Driver = config.Postgres
+		dbCfg.Port = 15432
 	}
 
 	if runInDocker {
-		cfg.DBHost = cfg.DBDriver.String()
-		cfg.DBPort = cfg.DBPort - 10000
+		dbCfg.Host = dbCfg.Driver.String()
+		dbCfg.Port = dbCfg.Port - 10000
 		cfg.KafkaHost = []string{"kafka:29092"}
 	} else {
-		cfg.DBHost = "localhost"
+		dbCfg.Host = "localhost"
 	}
+
+	cfg.DBs = []config.Database{dbCfg}
 
 	return cfg
 }

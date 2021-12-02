@@ -26,14 +26,14 @@ var supportedDbTypes = map[DbDriver]bool{
 	MySQL:    true,
 }
 
-type Config struct {
+type args struct {
 	PollingDisabled      bool     `arg:"--polling-disabled,env:POLLING_DISABLED"`
 	SkipMigrations       bool     `arg:"--skip-migrations,env:SKIP_MIGRATIONS"`
 	DBHost               string   `arg:"--db-host,env:DB_HOST,required"`
 	DBPort               uint32   `arg:"--db-port,env:DB_PORT,required"`
 	DBUser               string   `arg:"--db-user,env:DB_USER,required"`
 	DBPass               string   `arg:"--db-pass,env:DB_PASS,required"`
-	DBName               string   `arg:"--db-name,env:DB_NAME,required"`
+	DBNames              []string `arg:"--db-name,env:DB_NAME,required"`
 	DBDriver             DbDriver `arg:"--db-driver,env:DB_DRIVER,required"`
 	DBOutboxTable        string
 	KafkaHost            []string `arg:"--kafka-host,env:KAFKA_HOST"`
@@ -48,51 +48,105 @@ type Config struct {
 	BatchSize            int      `arg:"--batch-size,env:BATCH_SIZE"`
 }
 
+type Database struct {
+	Host, User, Password, Name, OutboxTable string
+	Port                                    uint32
+	Driver                                  DbDriver
+	TLSSkipVerifyPeer                       bool
+	TLSEnable                               bool
+}
+
+type Config struct {
+	PollingDisabled      bool
+	SkipMigrations       bool
+	DBs                  []Database
+	KafkaHost            []string
+	KafkaPublishAttempts int
+	TLSEnable            bool
+	TLSSkipVerifyPeer    bool
+	WriteConcurrency     int
+	PollFrequencyMs      int
+	RunCleanup           bool
+	RunOptimize          bool
+	SidecarProxyUrl      string
+	BatchSize            int
+}
+
 func NewConfig() (*Config, error) {
-	c := &Config{
+	a := &args{
 		KafkaPublishAttempts: defaultPublishAttempts,
 		DBOutboxTable:        outboxTable,
 		WriteConcurrency:     1,
 		PollFrequencyMs:      500,
 		BatchSize:            250,
 	}
-	arg.MustParse(c)
+	arg.MustParse(a)
 
-	if !supportedDbTypes[c.DBDriver] {
-		return nil, fmt.Errorf("the DB_DRIVER provided (%s) is not supported", c.DBDriver)
+	if !supportedDbTypes[a.DBDriver] {
+		return nil, fmt.Errorf("the DB_DRIVER provided (%s) is not supported", a.DBDriver)
 	}
 
-	return c, nil
+	// todo: doc
+	var dbs []Database
+	for _, dbName := range a.DBNames {
+		dbs = append(dbs, Database{
+			Host:              a.DBHost,
+			Port:              a.DBPort,
+			User:              a.DBUser,
+			Password:          a.DBPass,
+			Name:              dbName,
+			Driver:            a.DBDriver,
+			OutboxTable:       a.DBOutboxTable,
+			TLSEnable:         a.TLSEnable,
+			TLSSkipVerifyPeer: a.TLSSkipVerifyPeer,
+		})
+	}
+
+	return &Config{
+		PollingDisabled:      a.PollingDisabled,
+		SkipMigrations:       a.SkipMigrations,
+		KafkaHost:            a.KafkaHost,
+		DBs:                  dbs,
+		KafkaPublishAttempts: a.KafkaPublishAttempts,
+		TLSEnable:            a.TLSEnable,
+		TLSSkipVerifyPeer:    a.TLSSkipVerifyPeer,
+		WriteConcurrency:     a.WriteConcurrency,
+		PollFrequencyMs:      a.PollFrequencyMs,
+		RunCleanup:           a.RunCleanup,
+		RunOptimize:          a.RunOptimize,
+		SidecarProxyUrl:      a.SidecarProxyUrl,
+		BatchSize:            a.BatchSize,
+	}, nil
 }
 
 func (c *Config) GetPollIntervalDurationInMs() time.Duration {
 	return time.Duration(c.PollFrequencyMs) * time.Millisecond
 }
 
-func (c *Config) GetDSN() string {
-	switch c.DBDriver {
+func (d Database) GetDSN() string {
+	switch d.Driver {
 	case MySQL:
 		tls := "false"
-		if c.TLSEnable {
-			if c.TLSSkipVerifyPeer {
+		if d.TLSEnable {
+			if d.TLSSkipVerifyPeer {
 				tls = "skip-verify"
 			} else {
 				tls = "true"
 			}
 		}
-		return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true&tls=%s&multiStatements=true", c.DBUser, c.DBPass, c.DBHost, c.DBPort, c.DBName, tls)
+		return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true&tls=%s&multiStatements=true", d.User, d.Password, d.Host, d.Port, d.Name, tls)
 	case Postgres:
 		sslMode := "disable"
-		if c.TLSEnable {
-			if c.TLSSkipVerifyPeer {
+		if d.TLSEnable {
+			if d.TLSSkipVerifyPeer {
 				sslMode = "require"
 			} else {
 				sslMode = "verify-full"
 			}
 		}
-		return fmt.Sprintf("%s://%s@%s:%d/%s?sslmode=%s", c.DBDriver, url.UserPassword(c.DBUser, c.DBPass), c.DBHost, c.DBPort, c.DBName, sslMode)
+		return fmt.Sprintf("%s://%s@%s:%d/%s?sslmode=%s", d.Driver, url.UserPassword(d.User, d.Password), d.Host, d.Port, d.Name, sslMode)
 	default:
-		log.Logger.Fatalf("the DB driver configured (%s) is not supported", c.DBDriver)
+		log.Logger.Fatalf("the DB driver configured (%s) is not supported", d.Driver)
 		return ""
 	}
 }
@@ -105,12 +159,7 @@ func (c Config) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]interface{}{
 		"PollingDisabled":      c.PollingDisabled,
 		"SkipMigrations":       c.SkipMigrations,
-		"DBHost":               c.DBHost,
-		"DBPort":               c.DBPort,
-		"DBUser":               c.DBUser,
-		"DBPass":               "xxxxx",
-		"DBName":               c.DBName,
-		"DBDriver":             c.DBDriver,
+		"Databases":            c.DBs,
 		"KafkaHost":            c.KafkaHost,
 		"KafkaPublishAttempts": c.KafkaPublishAttempts,
 		"TLSEnable":            c.TLSEnable,
@@ -121,6 +170,19 @@ func (c Config) MarshalJSON() ([]byte, error) {
 		"RunOptimize":          c.RunOptimize,
 		"SidecarProxyUrl":      c.SidecarProxyUrl,
 		"BatchSize":            c.BatchSize,
+	})
+}
+
+func (d Database) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]interface{}{
+		"Port":              d.Port,
+		"User":              d.User,
+		"Pass":              "xxxxx",
+		"Name":              d.Name,
+		"Driver":            d.Driver,
+		"OutboxTable":       d.OutboxTable,
+		"TLSEnable":         d.TLSEnable,
+		"TLSSkipVerifyPeer": d.TLSSkipVerifyPeer,
 	})
 }
 

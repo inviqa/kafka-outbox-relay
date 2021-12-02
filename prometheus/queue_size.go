@@ -12,10 +12,6 @@ import (
 
 var outboxQueueSize prom.Gauge
 
-type queueSizer interface {
-	GetQueueSize() (uint, error)
-}
-
 func init() {
 	outboxQueueSize = promauto.NewGauge(prom.GaugeOpts{
 		Name: "kafka_outbox_queue_size",
@@ -23,14 +19,9 @@ func init() {
 	})
 }
 
-func ObserveQueueSize(sizer queueSizer, ctx context.Context) {
+func ObserveQueueSize(sizers []Sizer, ctx context.Context) {
 	for {
-		size, err := sizer.GetQueueSize()
-		if err != nil {
-			log.Logger.WithError(err).Error("an error occurred determining the size of the queue")
-			time.Sleep(backoffTime)
-			continue
-		}
+		size := queueSize(sizers)
 
 		select {
 		case <-ctx.Done():
@@ -41,4 +32,18 @@ func ObserveQueueSize(sizer queueSizer, ctx context.Context) {
 			time.Sleep(backoffTime)
 		}
 	}
+}
+
+func queueSize(sizers []Sizer) uint {
+	var totalSize uint
+	for _, sizer := range sizers {
+		size, err := sizer.GetQueueSize()
+		if err != nil {
+			log.Logger.WithError(err).Error("an error occurred determining the size of the queue")
+			time.Sleep(backoffTime)
+			break
+		}
+		totalSize += size
+	}
+	return totalSize
 }

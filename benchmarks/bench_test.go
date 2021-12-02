@@ -25,7 +25,7 @@ var (
 func init() {
 	cfg = createConfig()
 
-	db = data.NewDB(cfg)
+	db = data.NewDBs(cfg)
 	ensureOutboxTableExists()
 
 	repo = outbox.NewRepository(db, cfg)

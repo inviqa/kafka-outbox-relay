@@ -2,24 +2,27 @@ package prometheus
 
 import (
 	"context"
-	"inviqa/kafka-outbox-relay/outbox/test"
 	"testing"
 	"time"
+
+	"inviqa/kafka-outbox-relay/outbox/test"
 
 	"github.com/prometheus/client_golang/prometheus/testutil"
 )
 
 func TestObserveQueueSize(t *testing.T) {
-	repo := test.NewMockRepository()
-	repo.SetQueueSize(32)
+	repo1 := test.NewMockRepository()
+	repo1.SetQueueSize(32)
+	repo2 := test.NewMockRepository()
+	repo2.SetQueueSize(10)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	go ObserveQueueSize(repo, ctx)
+	go ObserveQueueSize([]Sizer{repo1, repo2}, ctx)
 	time.Sleep(time.Millisecond * 100)
 	cancel()
 
 	actual := testutil.ToFloat64(outboxQueueSize)
-	if actual != 32.00 {
+	if actual != 42.00 {
 		t.Errorf("expected outboxQueueSize to be 32.000000, but got %f", actual)
 	}
 }
@@ -30,7 +33,7 @@ func TestObserveQueueSize_WithRepositoryError(t *testing.T) {
 	repo.ReturnErrors()
 
 	ctx, cancel := context.WithCancel(context.Background())
-	go ObserveQueueSize(repo, ctx)
+	go ObserveQueueSize([]Sizer{repo}, ctx)
 	time.Sleep(time.Millisecond * 100)
 	cancel()
 

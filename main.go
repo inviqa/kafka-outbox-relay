@@ -8,12 +8,10 @@ import (
 
 	"inviqa/kafka-outbox-relay/config"
 	"inviqa/kafka-outbox-relay/job"
-	"inviqa/kafka-outbox-relay/kafka"
 	"inviqa/kafka-outbox-relay/log"
 	"inviqa/kafka-outbox-relay/outbox"
 	"inviqa/kafka-outbox-relay/outbox/data"
 	"inviqa/kafka-outbox-relay/outbox/poller"
-	"inviqa/kafka-outbox-relay/outbox/processor"
 	"inviqa/kafka-outbox-relay/prometheus"
 )
 
@@ -31,59 +29,41 @@ func main() {
 		cancel()
 	}()
 
-	db := data.NewDB(cfg)
-	defer func() {
-		if err := db.Close(); err != nil {
-			log.Logger.WithError(err).Error("error closing database during shutdown process")
-		}
-	}()
+	dbs, dbClose := data.NewDBs(cfg)
+	defer dbClose()
 
-	repo := outbox.NewRepository(db, cfg)
-
+	var exitCode int
 	switch {
 	case cfg.RunCleanup:
-		os.Exit(job.RunCleanup(repo, cfg))
+		exitCode = job.RunCleanup(dbs, cfg)
 	case cfg.RunOptimize:
-		os.Exit(job.RunOptimize(db, cfg))
+		exitCode = job.RunOptimize(dbs, cfg)
 	default:
-		data.MigrateDatabase(db, cfg)
-		cleanup := startRelayServicePolling(cfg, repo, ctx)
-		defer cleanup()
+		runMainApp(dbs, cfg, ctx)
+	}
 
-		go prometheus.ObserveQueueSize(repo, ctx)
-		go prometheus.ObserveTotalSize(repo, ctx)
-		prometheus.StartHttpServer(ctx, cfg, db)
+	if exitCode > 0 {
+		dbClose() // we call this manually because os.Exit() does not respect defer
+		os.Exit(exitCode)
 	}
 }
 
-// todo: move to package
-func startRelayServicePolling(cfg *config.Config, repo outbox.Repository, ctx context.Context) func() {
-	logger := log.Logger.WithField("config", cfg)
-
-	// if polling has been disabled, we should
-	// wait forever by receiving on a channel that never gets a value, it does not
-	// matter that we do not act on context cancellation either as we are not
-	// processing anything, and it should be fine to terminate at any point
-	if cfg.PollingDisabled {
-		logger.Info("starting outbox relay in simulate mode, not polling")
-		<-make(chan struct{})
-		return func() {}
-	}
-
-	logger.Info("starting outbox relay polling")
-
-	batchCh := make(chan *outbox.Batch, 10)
-	pub := kafka.NewPublisher(cfg.KafkaHost, kafka.NewSaramaConfig(cfg.TLSEnable, cfg.TLSSkipVerifyPeer))
-	go poller.New(repo, batchCh).Poll(ctx, cfg.GetPollIntervalDurationInMs())
-
-	proc := processor.NewBatchProcessor(repo, pub)
-	for i := 0; i < cfg.WriteConcurrency; i++ {
-		go proc.ListenAndProcess(ctx, batchCh)
-	}
-
-	return func() {
-		if err := pub.Close(); err != nil {
-			log.Logger.WithError(err).Error("error closing kafka publisher during shutdown")
+func runMainApp(dbs data.DBs, cfg *config.Config, ctx context.Context) {
+	var repo outbox.Repository
+	var cleanups []func()
+	defer func() {
+		for _, cleanup := range cleanups {
+			cleanup()
 		}
-	}
+	}()
+
+	var sizers []prometheus.Sizer
+	dbs.Each(func(db data.DB) {
+		repo = outbox.NewRepository(db, cfg)
+		cleanups = append(cleanups, poller.Start(cfg, repo, ctx))
+	})
+
+	go prometheus.ObserveQueueSize(sizers, ctx)
+	go prometheus.ObserveTotalSize(sizers, ctx)
+	prometheus.StartHttpServer(ctx, cfg, dbs)
 }

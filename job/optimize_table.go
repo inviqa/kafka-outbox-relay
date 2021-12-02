@@ -2,11 +2,11 @@ package job
 
 import (
 	"database/sql"
-	"inviqa/kafka-outbox-relay/config"
-	"inviqa/kafka-outbox-relay/log"
 	"net/http"
 
-	"github.com/sirupsen/logrus"
+	"inviqa/kafka-outbox-relay/config"
+	"inviqa/kafka-outbox-relay/log"
+	"inviqa/kafka-outbox-relay/outbox/data"
 )
 
 type Optimizer interface {
@@ -14,17 +14,24 @@ type Optimizer interface {
 	EnableSideCarProxyQuit(proxyUrl string)
 }
 
-func RunOptimize(db *sql.DB, cfg *config.Config) int {
-	j := newOptimizeTableWithDefaultClient(db, cfg.DBOutboxTable, cfg.DBDriver)
+func RunOptimize(dbs data.DBs, cfg *config.Config) int {
+	var exitCode int
+	dbs.Each(func(db data.DB) {
+		exitCode += runOptimizeOnDb(db, cfg.SidecarProxyUrl)
+	})
+	return normalizeExitCode(exitCode)
+}
+
+func runOptimizeOnDb(db data.DB, sidecarProxyUrl string) int {
+	dbCfg := db.Config()
+	j := newOptimizeTableWithDefaultClient(db.Connection(), dbCfg.OutboxTable, dbCfg.Driver)
 	if j == nil {
-		log.Logger.WithFields(logrus.Fields{
-			"config": cfg,
-		}).Fatalf("unable to determine the database driver")
+		log.Logger.WithField("config", dbCfg).Fatalf("unable to determine the database driver")
 		return 1
 	}
 
-	if cfg.SidecarProxyUrl != "" {
-		j.EnableSideCarProxyQuit(cfg.SidecarProxyUrl)
+	if sidecarProxyUrl != "" {
+		j.EnableSideCarProxyQuit(sidecarProxyUrl)
 	}
 
 	err := j.Execute()

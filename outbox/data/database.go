@@ -18,6 +18,34 @@ const (
 	maxConnectionLifetime = time.Minute * 1
 )
 
+type DBs []DB
+
+type DB struct {
+	db  *sql.DB
+	cfg config.Database
+}
+
+func NewDB(db *sql.DB, cfg config.Database) DB {
+	return DB{
+		db:  db,
+		cfg: cfg,
+	}
+}
+
+func (dbs DBs) Each(callback func(db DB)) {
+	for _, db := range dbs {
+		callback(db)
+	}
+}
+
+func (db DB) Config() config.Database {
+	return db.cfg
+}
+
+func (db DB) Connection() *sql.DB {
+	return db.db
+}
+
 func init() {
 	setupLoggers()
 }
@@ -29,18 +57,43 @@ func setupLoggers() {
 	}
 }
 
-func NewDB(cfg *config.Config) *sql.DB {
+// NewDBs creates a database connection for each configured database in config.
+// It will also apply migrations on the databases automatically, unless migrations
+// are disabled in config.
+func NewDBs(cfg *config.Config) (DBs, func()) {
+	dbs := make(DBs, len(cfg.DBs))
+
 	log.Logger.Debug("connecting to the database")
 
-	db, err := sql.Open(cfg.DBDriver.String(), cfg.GetDSN())
-	if err != nil {
-		log.Logger.Fatalf("unable to connect to the database: %s", err)
+	for i, dbCfg := range cfg.DBs {
+		db, err := sql.Open(dbCfg.Driver.String(), dbCfg.GetDSN())
+		if err != nil {
+			log.Logger.Fatalf("unable to connect to the database: %s", err)
+		}
+
+		db.SetMaxOpenConns(maxOpenConnections)
+		db.SetMaxIdleConns(maxIdleConnections)
+		db.SetConnMaxLifetime(maxConnectionLifetime)
+
+		connectToDatabase(dbCfg, db, cfg.SkipMigrations)
+		dbs[i] = DB{
+			db:  db,
+			cfg: dbCfg,
+		}
 	}
 
-	db.SetMaxOpenConns(maxOpenConnections)
-	db.SetMaxIdleConns(maxIdleConnections)
-	db.SetConnMaxLifetime(maxConnectionLifetime)
+	cleanup := func() {
+		for _, db := range dbs {
+			if err := db.db.Close(); err != nil {
+				log.Logger.WithError(err).Error("error closing database during shutdown process")
+			}
+		}
+	}
 
+	return dbs, cleanup
+}
+
+func connectToDatabase(dbCfg config.Database, db *sql.DB, skipMigrations bool) {
 	tries := connectionAttempts
 	for {
 		err := db.Ping()
@@ -57,5 +110,10 @@ func NewDB(cfg *config.Config) *sql.DB {
 		}
 	}
 
-	return db
+	if skipMigrations {
+		log.Logger.Info("skipping database migrations because they are disabled")
+		return
+	}
+
+	migrateDatabase(dbCfg.Driver, dbCfg.Name, db)
 }

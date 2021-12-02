@@ -26,17 +26,12 @@ var (
 	postgresFiles embed.FS
 )
 
-func MigrateDatabase(db *sql.DB, cfg *config.Config) {
-	log.Logger.Info("checking database migrations")
-
-	if cfg.SkipMigrations {
-		log.Logger.Info("skipping database migrations because they are disabled")
-		return
-	}
+func migrateDatabase(cfgDriver config.DbDriver, databaseName string, db *sql.DB) {
+	log.Logger.Infof("checking database migrations for '%s'", databaseName)
 
 	var err error
 	var driver database.Driver
-	if cfg.DBDriver.MySQL() {
+	if cfgDriver.MySQL() {
 		driver, err = mysql.WithInstance(db, &mysql.Config{MigrationsTable: migrationsTable})
 	} else {
 		driver, err = postgres.WithInstance(db, &postgres.Config{MigrationsTable: migrationsTable})
@@ -46,9 +41,8 @@ func MigrateDatabase(db *sql.DB, cfg *config.Config) {
 		log.Logger.Fatalf("unable to create migration instance from database: %s", err)
 	}
 
-	d := createMigrateSourceDriver(cfg.DBDriver)
-
-	m, err := migrate.NewWithInstance("iofs", d, cfg.DBName, driver)
+	d := createMigrateSourceDriver(cfgDriver)
+	m, err := migrate.NewWithInstance("iofs", d, databaseName, driver)
 	if err != nil {
 		log.Logger.Fatalf("failed to load migration files from source driver: %s", err)
 	}
@@ -56,8 +50,6 @@ func MigrateDatabase(db *sql.DB, cfg *config.Config) {
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
 		log.Logger.Fatalf("failed to migrate database: %s", err)
 	}
-
-	log.Logger.Info("database is up-to-date, all migrations applied")
 }
 
 func createMigrateSourceDriver(driver config.DbDriver) source.Driver {
