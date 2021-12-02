@@ -86,7 +86,28 @@ func NewConfig() (*Config, error) {
 		return nil, fmt.Errorf("the DB_DRIVER provided (%s) is not supported", a.DBDriver)
 	}
 
-	// todo: doc
+	return &Config{
+		PollingDisabled:      a.PollingDisabled,
+		SkipMigrations:       a.SkipMigrations,
+		KafkaHost:            a.KafkaHost,
+		DBs:                  databasesConfig(a),
+		KafkaPublishAttempts: a.KafkaPublishAttempts,
+		TLSEnable:            a.TLSEnable,
+		TLSSkipVerifyPeer:    a.TLSSkipVerifyPeer,
+		WriteConcurrency:     a.WriteConcurrency,
+		PollFrequencyMs:      a.PollFrequencyMs,
+		RunCleanup:           a.RunCleanup,
+		RunOptimize:          a.RunOptimize,
+		SidecarProxyUrl:      a.SidecarProxyUrl,
+		BatchSize:            a.BatchSize,
+	}, nil
+}
+
+// databasesConfig models database configuration, and currently creates a separate database config
+// for each database name that is provided from env
+// NOTE: In the future, we will likely expand this to allow multiple database connection details to
+// be provided via env vars too
+func databasesConfig(a *args) []Database {
 	var dbs []Database
 	for _, dbName := range a.DBNames {
 		dbs = append(dbs, Database{
@@ -101,22 +122,7 @@ func NewConfig() (*Config, error) {
 			TLSSkipVerifyPeer: a.TLSSkipVerifyPeer,
 		})
 	}
-
-	return &Config{
-		PollingDisabled:      a.PollingDisabled,
-		SkipMigrations:       a.SkipMigrations,
-		KafkaHost:            a.KafkaHost,
-		DBs:                  dbs,
-		KafkaPublishAttempts: a.KafkaPublishAttempts,
-		TLSEnable:            a.TLSEnable,
-		TLSSkipVerifyPeer:    a.TLSSkipVerifyPeer,
-		WriteConcurrency:     a.WriteConcurrency,
-		PollFrequencyMs:      a.PollFrequencyMs,
-		RunCleanup:           a.RunCleanup,
-		RunOptimize:          a.RunOptimize,
-		SidecarProxyUrl:      a.SidecarProxyUrl,
-		BatchSize:            a.BatchSize,
-	}, nil
+	return dbs
 }
 
 func (c *Config) GetPollIntervalDurationInMs() time.Duration {
