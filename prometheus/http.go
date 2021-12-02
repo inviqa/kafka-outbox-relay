@@ -10,9 +10,10 @@ import (
 	"inviqa/kafka-outbox-relay/config"
 	h "inviqa/kafka-outbox-relay/http"
 	"inviqa/kafka-outbox-relay/log"
+	"inviqa/kafka-outbox-relay/outbox/data"
 )
 
-func StartHttpServer(ctx context.Context, cfg *config.Config, db h.Pinger) {
+func StartHttpServer(ctx context.Context, cfg *config.Config, dbs data.DBs) {
 	var srv http.Server
 
 	go func() {
@@ -26,9 +27,16 @@ func StartHttpServer(ctx context.Context, cfg *config.Config, db h.Pinger) {
 		}
 	}()
 
+	pingers := make([]h.Pinger, len(dbs))
+	i := 0
+	dbs.Each(func(db data.DB) {
+		pingers[i] = db.Connection()
+		i++
+	})
+
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
-	mux.Handle("/healthz", h.NewHealthzHandler(cfg.GetDependencySystemAddresses(), db))
+	mux.Handle("/healthz", h.NewHealthzHandler(cfg.GetDependencySystemAddresses(), pingers))
 	srv = http.Server{
 		Handler: mux,
 		Addr:    ":80",

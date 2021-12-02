@@ -6,6 +6,7 @@ import (
 
 	"inviqa/kafka-outbox-relay/config"
 	"inviqa/kafka-outbox-relay/log"
+	"inviqa/kafka-outbox-relay/outbox/data"
 	s "inviqa/kafka-outbox-relay/outbox/data/sql"
 
 	"github.com/google/uuid"
@@ -35,8 +36,14 @@ type Repository struct {
 	queryProvider queryProvider
 }
 
-func NewRepository(db *sql.DB, cfg *config.Config) Repository {
-	return NewRepositoryWithQueryProvider(db, cfg, newQueryProvider(cfg.DBDriver, cfg.DBOutboxTable, columns))
+func NewRepository(db data.DB, cfg *config.Config) Repository {
+	dbCfg := db.Config()
+
+	return NewRepositoryWithQueryProvider(
+		db.Connection(),
+		cfg,
+		newQueryProvider(dbCfg.Driver, dbCfg.OutboxTable, columns),
+	)
 }
 
 func NewRepositoryWithQueryProvider(db *sql.DB, cfg *config.Config, qp queryProvider) Repository {

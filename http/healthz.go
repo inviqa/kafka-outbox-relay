@@ -10,17 +10,17 @@ import (
 
 type healthzHandler struct {
 	checkAddr []string
-	db        Pinger
+	dbs       []Pinger
 }
 
 type Pinger interface {
 	Ping() error
 }
 
-func NewHealthzHandler(checkAddr []string, db Pinger) http.Handler {
+func NewHealthzHandler(checkAddr []string, dbs []Pinger) http.Handler {
 	return &healthzHandler{
 		checkAddr: checkAddr,
-		db:        db,
+		dbs:       dbs,
 	}
 }
 
@@ -40,9 +40,11 @@ func (h healthzHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 func (h healthzHandler) checkDatabase() bool {
-	if err := h.db.Ping(); err != nil {
-		log.Logger.Debug("database is not available or there is a problem with connectivity")
-		return false
+	for _, db := range h.dbs {
+		if err := db.Ping(); err != nil {
+			log.Logger.Debug("database is not available or there is a problem with connectivity")
+			return false
+		}
 	}
 	return true
 }

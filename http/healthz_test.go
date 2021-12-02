@@ -9,7 +9,7 @@ import (
 )
 
 func TestNewHealthzHandler(t *testing.T) {
-	if nil == NewHealthzHandler([]string{""}, &mockPinger{}) {
+	if nil == NewHealthzHandler([]string{""}, mockPingers()) {
 		t.Errorf("got nil, expected a http.Handler instance")
 	}
 }
@@ -22,7 +22,7 @@ func TestHealthzHandler_ServeHTTP_ReadinessWhenHealthy(t *testing.T) {
 
 	recorder := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/healthz?readiness=1", nil)
-	handler := NewHealthzHandler([]string{strings.Replace(srv.URL, "http://", "", 1)}, &mockPinger{})
+	handler := NewHealthzHandler([]string{strings.Replace(srv.URL, "http://", "", 1)}, mockPingers())
 	handler.ServeHTTP(recorder, req)
 
 	if recorder.Code != http.StatusOK {
@@ -32,7 +32,7 @@ func TestHealthzHandler_ServeHTTP_ReadinessWhenHealthy(t *testing.T) {
 
 func TestHealthzHandler_ServeHTTP_ReadinessWhenServiceUnhealthy(t *testing.T) {
 	recorder := httptest.NewRecorder()
-	handler := NewHealthzHandler([]string{"foo:9090"}, &mockPinger{})
+	handler := NewHealthzHandler([]string{"foo:9090"}, mockPingers())
 	handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/healthz?readiness=1", nil))
 
 	if recorder.Code != http.StatusServiceUnavailable {
@@ -47,10 +47,8 @@ func TestHealthzHandler_ServeHTTP_ReadinessWhenDbUnavailable(t *testing.T) {
 	defer srv.Close()
 
 	recorder := httptest.NewRecorder()
-	mp := &mockPinger{}
-	mp.enableErrors()
 
-	handler := NewHealthzHandler([]string{strings.Replace(srv.URL, "http://", "", 1)}, mp)
+	handler := NewHealthzHandler([]string{strings.Replace(srv.URL, "http://", "", 1)}, mockErroringPingers())
 	handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/healthz?readiness=1", nil))
 
 	if recorder.Code != http.StatusServiceUnavailable {
@@ -60,8 +58,7 @@ func TestHealthzHandler_ServeHTTP_ReadinessWhenDbUnavailable(t *testing.T) {
 
 func TestHealthzHandler_ServeHTTP_LivenessWhenHealthy(t *testing.T) {
 	recorder := httptest.NewRecorder()
-	mp := &mockPinger{}
-	handler := NewHealthzHandler([]string{"http://foo:9090"}, mp)
+	handler := NewHealthzHandler([]string{"http://foo:9090"}, mockPingers())
 	handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/healthz", nil))
 
 	if recorder.Code != http.StatusOK {
@@ -71,14 +68,25 @@ func TestHealthzHandler_ServeHTTP_LivenessWhenHealthy(t *testing.T) {
 
 func TestHealthzHandler_ServeHTTP_LivenessWhenDbUnavailable(t *testing.T) {
 	recorder := httptest.NewRecorder()
-	mp := &mockPinger{}
-	mp.enableErrors()
-	handler := NewHealthzHandler([]string{"http://foo:9090"}, mp)
+
+	handler := NewHealthzHandler([]string{"http://foo:9090"}, mockErroringPingers())
 	handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/healthz", nil))
 
 	if recorder.Code != http.StatusServiceUnavailable {
 		t.Errorf("expected 503 response code, but got %d", recorder.Code)
 	}
+}
+
+func mockPingers() []Pinger {
+	return []Pinger{&mockPinger{}}
+}
+
+func mockErroringPingers() []Pinger {
+	mps := mockPingers()
+	mp := &mockPinger{}
+	mp.enableErrors()
+	mps = append(mps, mp)
+	return mps
 }
 
 type mockPinger struct {

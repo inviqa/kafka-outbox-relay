@@ -5,11 +5,12 @@ package integration
 
 import (
 	"database/sql"
+	"testing"
+	"time"
+
 	"inviqa/kafka-outbox-relay/integration/http"
 	"inviqa/kafka-outbox-relay/job"
 	"inviqa/kafka-outbox-relay/outbox"
-	"testing"
-	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -47,7 +48,7 @@ func TestCleanupJobRemovesPublishedMessages(t *testing.T) {
 		insertOutboxMessages([]*outbox.Message{msg1, msg2, msg3})
 
 		Convey("When we execute a cleanup of the outbox", func() {
-			code := job.RunCleanup(publishedDeleter, cfg)
+			code := job.RunCleanup(dbs, cfg)
 
 			Convey("Then the old messages should have been deleted", func() {
 				So(code, ShouldEqual, 0)
@@ -106,7 +107,7 @@ func TestCleanupJobRemovesPublishedMessagesWithHugeNumberOfMessages(t *testing.T
 			insertOutboxMessages([]*outbox.Message{msg1, msg2})
 
 			Convey("When we execute a cleanup of the outbox", func() {
-				code := job.RunCleanup(publishedDeleter, cfg)
+				code := job.RunCleanup(dbs, cfg)
 
 				Convey("Then the old messages should have been deleted", func() {
 					So(code, ShouldEqual, 0)
@@ -146,7 +147,7 @@ func TestCleanupJobQuitsSidecarProxyWhenConfiguredToDoSo(t *testing.T) {
 		insertOutboxMessages([]*outbox.Message{msg1})
 
 		Convey("When we execute a cleanup of the outbox", func() {
-			code := job.RunCleanup(publishedDeleter, cfg)
+			code := job.RunCleanup(dbs, cfg)
 
 			Convey("Then the old messages should have been deleted", func() {
 				So(code, ShouldEqual, 0)

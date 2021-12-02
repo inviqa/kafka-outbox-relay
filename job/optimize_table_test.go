@@ -1,11 +1,12 @@
 package job
 
 import (
-	"inviqa/kafka-outbox-relay/config"
-	"inviqa/kafka-outbox-relay/job/test"
 	"net/http"
 	"reflect"
 	"testing"
+
+	"inviqa/kafka-outbox-relay/config"
+	"inviqa/kafka-outbox-relay/job/test"
 
 	"github.com/DATA-DOG/go-sqlmock"
 )

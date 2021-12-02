@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"inviqa/kafka-outbox-relay/config"
+	"inviqa/kafka-outbox-relay/outbox/data"
 	s "inviqa/kafka-outbox-relay/outbox/data/sql"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -21,36 +22,38 @@ func TestNewRepository(t *testing.T) {
 		deep.CompareUnexportedFields = false
 	}()
 
-	db, _, _ := sqlmock.New()
+	dbConn, _, _ := sqlmock.New()
 
 	tests := []struct {
 		name             string
 		cfg              *config.Config
+		dbCfg            config.Database
 		driver           config.DbDriver
 		expQueryProvider queryProvider
 	}{
 		{
 			name: "mysql query provider",
-			cfg: &config.Config{
-				DBOutboxTable: "outbox_table",
-				DBDriver:      config.MySQL,
+			dbCfg: config.Database{
+				OutboxTable: "outbox_table",
+				Driver:      config.MySQL,
 			},
 			expQueryProvider: &s.MysqlQueryProvider{Table: "outbox_table", Columns: columns},
 		},
 		{
 			name: "postgres query provider",
-			cfg: &config.Config{
-				DBOutboxTable: "outbox_table",
-				DBDriver:      config.Postgres,
+			dbCfg: config.Database{
+				OutboxTable: "outbox_table",
+				Driver:      config.Postgres,
 			},
 			expQueryProvider: &s.PostgresQueryProvider{Table: "outbox_table", Columns: columns},
 		},
 	}
 
 	for _, tt := range tests {
+		db := data.NewDB(dbConn, tt.dbCfg)
 		t.Run(tt.name, func(t *testing.T) {
 			exp := Repository{
-				db:            db,
+				db:            dbConn,
 				cfg:           tt.cfg,
 				queryProvider: tt.expQueryProvider,
 			}
@@ -91,7 +94,7 @@ func TestRepository_GetBatch(t *testing.T) {
 	defer db.Close()
 	now := time.Now()
 	now2 := now.Add(time.Second * 1)
-	repo := NewRepositoryWithQueryProvider(db, &config.Config{DBOutboxTable: "outbox", BatchSize: 100}, &mockQueryProvider{})
+	repo := NewRepositoryWithQueryProvider(db, &config.Config{BatchSize: 100}, &mockQueryProvider{})
 
 	msgBatchId := uuid.MustParse("f58e7c8a-e0d2-47fb-8111-eb0ae02ea21e")
 	rows := sqlmock.NewRows(columns).
@@ -176,7 +179,7 @@ func TestRepository_CommitBatch(t *testing.T) {
 	batchId := uuid.New()
 	batch := createMockBatch(batchId)
 
-	repo := NewRepositoryWithQueryProvider(db, &config.Config{DBOutboxTable: "outbox"}, &mockQueryProvider{})
+	repo := NewRepositoryWithQueryProvider(db, &config.Config{}, &mockQueryProvider{})
 
 	mock.ExpectBegin()
 	mock.ExpectExec("UPDATE outbox SET error_reason =.* WHERE id =.*").
@@ -200,7 +203,7 @@ func TestRepository_CommitBatchWithTransactionCreateError(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
 
-	repo := NewRepositoryWithQueryProvider(db, &config.Config{DBOutboxTable: "outbox"}, &mockQueryProvider{})
+	repo := NewRepositoryWithQueryProvider(db, &config.Config{}, &mockQueryProvider{})
 
 	mock.ExpectBegin().WillReturnError(errors.New("oops"))
 	repo.CommitBatch(&Batch{Id: uuid.New(), Messages: []*Message{}})
@@ -214,7 +217,7 @@ func TestRepository_CommitBatchWithErroredMessageUpdateQueryError(t *testing.T) 
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
 
-	repo := NewRepositoryWithQueryProvider(db, &config.Config{DBOutboxTable: "outbox"}, &mockQueryProvider{})
+	repo := NewRepositoryWithQueryProvider(db, &config.Config{}, &mockQueryProvider{})
 
 	batchId := uuid.New()
 	batch := createMockBatch(batchId)
@@ -241,7 +244,7 @@ func TestRepository_CommitBatchWithSuccessfulMessageUpdateQueryError(t *testing.
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
 
-	repo := NewRepositoryWithQueryProvider(db, &config.Config{DBOutboxTable: "outbox"}, &mockQueryProvider{})
+	repo := NewRepositoryWithQueryProvider(db, &config.Config{}, &mockQueryProvider{})
 
 	batchId := uuid.New()
 	batch := createMockBatchOfSuccessfulMessagesOnly(batchId)
@@ -264,7 +267,7 @@ func TestRepository_DeletePublished(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
 
-	repo := NewRepositoryWithQueryProvider(db, &config.Config{DBOutboxTable: "outbox"}, &mockQueryProvider{})
+	repo := NewRepositoryWithQueryProvider(db, &config.Config{}, &mockQueryProvider{})
 
 	now := time.Now()
 	mock.ExpectExec("DELETE FROM outbox WHERE push_completed_at <=.*").
@@ -289,7 +292,7 @@ func TestRepository_DeletePublishedWithError(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
 
-	repo := NewRepositoryWithQueryProvider(db, &config.Config{DBOutboxTable: "outbox"}, &mockQueryProvider{})
+	repo := NewRepositoryWithQueryProvider(db, &config.Config{}, &mockQueryProvider{})
 
 	now := time.Now()
 	mock.ExpectExec("DELETE FROM outbox WHERE push_completed_at <=.*").
@@ -315,7 +318,7 @@ func TestRepository_GetQueueSize(t *testing.T) {
 	defer db.Close()
 
 	rows := sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(10)
-	repo := NewRepositoryWithQueryProvider(db, &config.Config{DBOutboxTable: "outbox"}, &mockQueryProvider{})
+	repo := NewRepositoryWithQueryProvider(db, &config.Config{}, &mockQueryProvider{})
 	mock.ExpectQuery("SELECT COUNT.*WHERE.*").
 		WillReturnRows(rows)
 
@@ -334,7 +337,7 @@ func TestRepository_GetTotalSize(t *testing.T) {
 	defer db.Close()
 
 	rows := sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(99)
-	repo := NewRepositoryWithQueryProvider(db, &config.Config{DBOutboxTable: "outbox"}, &mockQueryProvider{})
+	repo := NewRepositoryWithQueryProvider(db, &config.Config{}, &mockQueryProvider{})
 	mock.ExpectQuery("SELECT COUNT.*").
 		WillReturnRows(rows)
 

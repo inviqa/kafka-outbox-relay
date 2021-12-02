@@ -18,7 +18,7 @@ import (
 )
 
 func TestAbandonedMessagesAreCorrectlyPublishedAgain(t *testing.T) {
-	Convey(fmt.Sprintf("Given I have a %s outbox table", cfg.DBDriver), t, func() {
+	Convey(fmt.Sprintf("Given I have a %s outbox table", dbCfg.Driver), t, func() {
 		purgeOutboxTable()
 
 		Convey("And there are some abandoned messages in the outbox", func() {

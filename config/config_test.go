@@ -29,15 +29,19 @@ func TestNewConfig(t *testing.T) {
 		{
 			name: "valid configuration",
 			want: &Config{
-				PollingDisabled:      true,
-				SkipMigrations:       true,
-				DBHost:               "host",
-				DBPort:               123,
-				DBUser:               "joe",
-				DBPass:               "passw0rd",
-				DBName:               "db-name",
-				DBDriver:             Postgres,
-				DBOutboxTable:        "kafka_outbox",
+				PollingDisabled: true,
+				SkipMigrations:  true,
+				DBs: []Database{
+					{
+						Host:        "host",
+						Port:        123,
+						User:        "joe",
+						Password:    "passw0rd",
+						Name:        "db-name",
+						Driver:      Postgres,
+						OutboxTable: "kafka_outbox",
+					},
+				},
 				KafkaHost:            []string{"kafka"},
 				KafkaPublishAttempts: 5,
 				WriteConcurrency:     16,
@@ -58,15 +62,19 @@ func TestNewConfig(t *testing.T) {
 		{
 			name: "migrations are disabled by default",
 			want: &Config{
-				PollingDisabled:      true,
-				SkipMigrations:       false,
-				DBHost:               "host",
-				DBPort:               123,
-				DBDriver:             MySQL,
-				DBOutboxTable:        "kafka_outbox",
-				DBUser:               "joe",
-				DBPass:               "passw0rd",
-				DBName:               "db-name",
+				PollingDisabled: true,
+				SkipMigrations:  false,
+				DBs: []Database{
+					{
+						Host:        "host",
+						Port:        123,
+						Driver:      MySQL,
+						OutboxTable: "kafka_outbox",
+						User:        "joe",
+						Password:    "passw0rd",
+						Name:        "db-name",
+					},
+				},
 				KafkaHost:            []string{"kafka"},
 				KafkaPublishAttempts: 5,
 				WriteConcurrency:     1,
@@ -97,14 +105,14 @@ func TestNewConfig(t *testing.T) {
 	}
 }
 
-func TestConfig_GetDSN(t *testing.T) {
+func TestDatabase_GetDSN(t *testing.T) {
 	type fields struct {
-		DBHost            string
-		DBPort            uint32
-		DBUser            string
-		DBPass            string
-		DBName            string
-		DBDriver          DbDriver
+		Host              string
+		Port              uint32
+		User              string
+		Pass              string
+		Name              string
+		Driver            DbDriver
 		TLSEnable         bool
 		TLSSkipVerifyPeer bool
 	}
@@ -116,12 +124,12 @@ func TestConfig_GetDSN(t *testing.T) {
 		{
 			name: "generated DSN for mysql driver",
 			fields: fields{
-				DBHost:            "host",
-				DBPort:            3306,
-				DBUser:            "user",
-				DBPass:            "pass",
-				DBName:            "db-name",
-				DBDriver:          "mysql",
+				Host:              "host",
+				Port:              3306,
+				User:              "user",
+				Pass:              "pass",
+				Name:              "db-name",
+				Driver:            "mysql",
 				TLSEnable:         true,
 				TLSSkipVerifyPeer: true,
 			},
@@ -130,12 +138,12 @@ func TestConfig_GetDSN(t *testing.T) {
 		{
 			name: "generated DSN for postgres driver",
 			fields: fields{
-				DBHost:            "host",
-				DBPort:            5432,
-				DBUser:            "user",
-				DBPass:            "pass",
-				DBName:            "db-name",
-				DBDriver:          "postgres",
+				Host:              "host",
+				Port:              5432,
+				User:              "user",
+				Pass:              "pass",
+				Name:              "db-name",
+				Driver:            "postgres",
 				TLSEnable:         true,
 				TLSSkipVerifyPeer: false,
 			},
@@ -144,17 +152,17 @@ func TestConfig_GetDSN(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &Config{
-				DBHost:            tt.fields.DBHost,
-				DBPort:            tt.fields.DBPort,
-				DBUser:            tt.fields.DBUser,
-				DBPass:            tt.fields.DBPass,
-				DBName:            tt.fields.DBName,
-				DBDriver:          tt.fields.DBDriver,
+			db := Database{
+				Host:              tt.fields.Host,
+				Port:              tt.fields.Port,
+				User:              tt.fields.User,
+				Password:          tt.fields.Pass,
+				Name:              tt.fields.Name,
+				Driver:            tt.fields.Driver,
 				TLSEnable:         tt.fields.TLSEnable,
 				TLSSkipVerifyPeer: tt.fields.TLSSkipVerifyPeer,
 			}
-			if got := c.GetDSN(); got != tt.want {
+			if got := db.GetDSN(); got != tt.want {
 				t.Errorf("GetDSN() = %v, want %v", got, tt.want)
 			}
 		})
@@ -191,30 +199,21 @@ func TestConfig_GetPollIntervalDurationInMs(t *testing.T) {
 }
 
 func TestConfig_GetDependencySystemAddresses(t *testing.T) {
-	type fields struct {
-		DBHost    string
-		DBPort    uint32
-		KafkaHost []string
-	}
 	tests := []struct {
-		name   string
-		fields fields
-		want   []string
+		name      string
+		kafkaHost []string
+		want      []string
 	}{
 		{
-			name: "kafka hosts",
-			fields: fields{
-				KafkaHost: []string{"kafka", "kafka2"},
-			},
-			want: []string{"kafka", "kafka2"},
+			name:      "kafka hosts",
+			kafkaHost: []string{"kafka", "kafka2"},
+			want:      []string{"kafka", "kafka2"},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Config{
-				DBHost:    tt.fields.DBHost,
-				DBPort:    tt.fields.DBPort,
-				KafkaHost: tt.fields.KafkaHost,
+				KafkaHost: tt.kafkaHost,
 			}
 			if got := c.GetDependencySystemAddresses(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("GetDependencySystemAddresses() = %v, want %v", got, tt.want)

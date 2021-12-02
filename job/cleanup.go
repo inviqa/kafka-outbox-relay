@@ -1,69 +1,70 @@
 package job
 
 import (
-	"inviqa/kafka-outbox-relay/config"
 	"net/http"
 	"time"
 
+	"inviqa/kafka-outbox-relay/config"
 	"inviqa/kafka-outbox-relay/log"
+	"inviqa/kafka-outbox-relay/outbox"
+	"inviqa/kafka-outbox-relay/outbox/data"
 )
 
-type PublishedDeleter interface {
+type publishedDeleter interface {
 	DeletePublished(olderThan time.Time) (int64, error)
 }
 
 type cleanup struct {
-	pd PublishedDeleter
 	SidecarQuitter
+	deleterFactory func() publishedDeleter
 }
 
-func RunCleanup(repo PublishedDeleter, cfg *config.Config) int {
-	j := newCleanupWithDefaultClient(repo)
+func RunCleanup(dbs data.DBs, cfg *config.Config) int {
+	var exitCode int
+	dbs.Each(func(db data.DB) {
+		exitCode += doCleanup(db, cfg)
+	})
+	return normalizeExitCode(exitCode)
+}
+
+func doCleanup(db data.DB, cfg *config.Config) int {
+	j := newCleanupWithDefaults(db, cfg)
+
 	if cfg.SidecarProxyUrl != "" {
 		j.EnableSideCarProxyQuit(cfg.SidecarProxyUrl)
 	}
 
-	_, err := j.Execute()
-	if err != nil {
+	if err := j.Execute(); err != nil {
 		return 1
 	}
 
 	return 0
 }
 
-func newCleanupWithDefaultClient(pd PublishedDeleter) *cleanup {
+func newCleanupWithDefaults(db data.DB, cfg *config.Config) *cleanup {
 	return &cleanup{
-		pd: pd,
+		deleterFactory: func() publishedDeleter {
+			return outbox.NewRepository(db, cfg)
+		},
 		SidecarQuitter: SidecarQuitter{
 			Client: http.DefaultClient,
 		},
 	}
 }
 
-func newCleanup(pd PublishedDeleter, cl httpPoster) *cleanup {
-	return &cleanup{
-		pd: pd,
-		SidecarQuitter: SidecarQuitter{
-			Client: cl,
-		},
-	}
-}
-
-func (c *cleanup) Execute() (int64, error) {
-	rows, err := c.pd.DeletePublished(time.Now().Add(time.Duration(-1) * time.Hour))
+func (c *cleanup) Execute() error {
+	rows, err := c.deleterFactory().DeletePublished(time.Now().Add(time.Duration(-1) * time.Hour))
 	if err != nil {
 		log.Logger.WithError(err).Error("an error occurred whilst deleting published outbox records")
-		return 0, err
+		return err
 	}
 
 	log.Logger.Infof("deleted %d published outbox records", rows)
 
 	if c.QuitSidecar {
-		err = c.Quit()
-		if err != nil {
-			return 0, err
+		if err = c.Quit(); err != nil {
+			return err
 		}
 	}
-
-	return rows, nil
+	return nil
 }

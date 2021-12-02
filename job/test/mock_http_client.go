@@ -6,18 +6,18 @@ import (
 	"net/http"
 )
 
-type mockHttpClient struct {
+type MockHttpClient struct {
 	SentReqs     map[string]bool
 	returnErrors bool
 }
 
-func NewMockHttpClient() *mockHttpClient {
-	return &mockHttpClient{
+func NewMockHttpClient() *MockHttpClient {
+	return &MockHttpClient{
 		SentReqs: map[string]bool{},
 	}
 }
 
-func (m *mockHttpClient) Post(url, contentType string, body io.Reader) (resp *http.Response, err error) {
+func (m *MockHttpClient) Post(url, contentType string, body io.Reader) (resp *http.Response, err error) {
 	if m.returnErrors {
 		return nil, errors.New("oops")
 	}
@@ -27,6 +27,6 @@ func (m *mockHttpClient) Post(url, contentType string, body io.Reader) (resp *ht
 	return &http.Response{}, nil
 }
 
-func (m *mockHttpClient) ReturnErrors() {
+func (m *MockHttpClient) ReturnErrors() {
 	m.returnErrors = true
 }
