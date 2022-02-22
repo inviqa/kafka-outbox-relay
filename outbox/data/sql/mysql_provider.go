@@ -25,13 +25,13 @@ func (m MysqlQueryProvider) MessageErroredUpdateSql(maxPushAttempts int) string 
 func (m MysqlQueryProvider) BatchCreationSql(batchSize int) string {
 	q := `UPDATE %s SET batch_id = ?, push_started_at = NOW()
 		WHERE ((batch_id IS NULL AND push_started_at IS NULL) OR
-		(batch_id IS NOT NULL AND push_completed_at IS NULL AND push_started_at < ?)) AND errored = ? LIMIT %d`
+		(batch_id IS NOT NULL AND push_completed_at IS NULL AND push_started_at < ?)) AND errored = ? ORDERED BY created_at ASC LIMIT %d`
 
 	return fmt.Sprintf(q, m.Table, batchSize)
 }
 
 func (m MysqlQueryProvider) BatchFetchSql() string {
-	return fmt.Sprintf(`SELECT %s FROM %s WHERE batch_id = ?`, strings.Join(m.escapeColumns(), ", "), m.Table)
+	return fmt.Sprintf(`SELECT %s FROM %s WHERE batch_id = ? ORDERED BY created_at ASC`, strings.Join(m.escapeColumns(), ", "), m.Table)
 }
 
 func (m MysqlQueryProvider) DeletePublishedMessagesSql() string {
