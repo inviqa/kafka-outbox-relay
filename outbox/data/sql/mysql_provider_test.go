@@ -41,7 +41,7 @@ func TestMysqlQueryProvider_DeletePublishedMessagesSql(t *testing.T) {
 
 func TestMysqlQueryProvider_BatchFetchSql(t *testing.T) {
 	got := createProvider().BatchFetchSql()
-	exp := "SELECT `name`, `foo` FROM kafka_outbox WHERE batch_id = ?"
+	exp := "SELECT `name`, `foo` FROM kafka_outbox WHERE batch_id = ? ORDER BY created_at ASC"
 
 	if got != exp {
 		t.Errorf("expected '%s', but got '%s'", exp, got)

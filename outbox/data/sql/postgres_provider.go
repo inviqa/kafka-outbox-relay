@@ -31,13 +31,13 @@ func (m PostgresQueryProvider) BatchCreationSql(batchSize int) string {
 	q := `UPDATE %s SET batch_id = $1, push_started_at = NOW()
 		WHERE id IN(
 			SELECT id FROM %s WHERE ((batch_id IS NULL AND push_started_at IS NULL) OR
-		(batch_id IS NOT NULL AND push_completed_at IS NULL AND push_started_at < $2)) AND errored = $3 LIMIT %d)`
+		(batch_id IS NOT NULL AND push_completed_at IS NULL AND push_started_at < $2)) AND errored = $3 ORDER BY created_at ASC LIMIT %d)`
 
 	return fmt.Sprintf(q, m.Table, m.Table, batchSize)
 }
 
 func (m PostgresQueryProvider) BatchFetchSql() string {
-	return fmt.Sprintf(`SELECT %s FROM %s WHERE batch_id = $1`, strings.Join(m.Columns, ", "), m.Table)
+	return fmt.Sprintf(`SELECT %s FROM %s WHERE batch_id = $1 ORDER BY created_at ASC`, strings.Join(m.Columns, ", "), m.Table)
 }
 
 func (m PostgresQueryProvider) DeletePublishedMessagesSql() string {
