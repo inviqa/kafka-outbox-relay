@@ -110,7 +110,7 @@ func (r Repository) CommitBatch(batch *Batch) {
 		return
 	}
 
-	var successIds []interface{}
+	var successIds []any
 	for _, msg := range batch.Messages {
 		if msg.ErrorReason != nil {
 			r.updateErroredMessage(tx, msg)
