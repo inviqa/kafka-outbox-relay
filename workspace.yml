@@ -1,6 +1,6 @@
 workspace('kafka-outbox-relay'):
   description: local workspace for kafka-outbox-relay.
-  harness: inviqa/go:v0.13
+  harness: inviqa/go:v0.16.0
   overlay: tools/workspace
 
 command('go test integration all'):
@@ -65,7 +65,7 @@ attributes:
     table_name: kafka_outbox
     platform: mysql
   go:
-    version: 1.17
+    version: 1.18
     module_name: inviqa/kafka-outbox-relay
     modules:
       before:
@@ -88,7 +88,7 @@ attributes:
     postgres:
       version: 11.7
     mysql:
-      version: 8
+      version: "8.0"
   pipeline:
     publish:
       enabled: yes

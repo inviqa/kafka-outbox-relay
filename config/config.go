@@ -162,7 +162,7 @@ func (c *Config) GetDependencySystemAddresses() []string {
 }
 
 func (c Config) MarshalJSON() ([]byte, error) {
-	return json.Marshal(map[string]interface{}{
+	return json.Marshal(map[string]any{
 		"PollingDisabled":      c.PollingDisabled,
 		"SkipMigrations":       c.SkipMigrations,
 		"Databases":            c.DBs,
@@ -180,7 +180,7 @@ func (c Config) MarshalJSON() ([]byte, error) {
 }
 
 func (d Database) MarshalJSON() ([]byte, error) {
-	return json.Marshal(map[string]interface{}{
+	return json.Marshal(map[string]any{
 		"Port":              d.Port,
 		"User":              d.User,
 		"Pass":              "xxxxx",

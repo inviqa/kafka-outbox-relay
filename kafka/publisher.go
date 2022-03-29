@@ -80,13 +80,12 @@ func (p Publisher) createRecordHeaders(headers []byte) ([]sarama.RecordHeader, e
 		return []sarama.RecordHeader{}, nil
 	}
 
-	h := map[string]interface{}{}
+	h := map[string]any{}
 
 	dec := json.NewDecoder(bytes.NewBuffer(headers))
 	dec.UseNumber()
 
-	err := dec.Decode(&h)
-	if err != nil {
+	if err := dec.Decode(&h); err != nil {
 		return nil, err
 	}
 
