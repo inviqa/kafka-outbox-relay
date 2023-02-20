@@ -19,7 +19,7 @@ func init() {
 	})
 }
 
-func ObserveQueueSize(sizers []Sizer, ctx context.Context) {
+func ObserveQueueSize(ctx context.Context, sizers []Sizer) {
 	for {
 		size := queueSize(sizers)
 

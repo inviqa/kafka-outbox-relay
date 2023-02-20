@@ -1,6 +1,7 @@
 package outbox
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -55,6 +56,7 @@ func TestNewRepository(t *testing.T) {
 			exp := Repository{
 				db:            dbConn,
 				cfg:           tt.cfg,
+				dbCfg:         tt.dbCfg,
 				queryProvider: tt.expQueryProvider,
 			}
 
@@ -74,15 +76,19 @@ func TestNewRepositoryWithQueryProvider(t *testing.T) {
 
 	db, _, _ := sqlmock.New()
 	cfg := &config.Config{}
+	dbCfg := config.Database{
+		Driver: config.MySQL,
+	}
 	prov := &mockQueryProvider{}
 
 	exp := Repository{
 		db:            db,
 		cfg:           cfg,
+		dbCfg:         dbCfg,
 		queryProvider: prov,
 	}
 
-	got := NewRepositoryWithQueryProvider(db, cfg, prov)
+	got := NewRepositoryWithQueryProvider(db, cfg, dbCfg, prov)
 	if diff := deep.Equal(exp, got); diff != nil {
 		t.Error(diff)
 	}
@@ -94,7 +100,8 @@ func TestRepository_GetBatch(t *testing.T) {
 	defer db.Close()
 	now := time.Now()
 	now2 := now.Add(time.Second * 1)
-	repo := NewRepositoryWithQueryProvider(db, &config.Config{BatchSize: 100}, &mockQueryProvider{})
+	repo := NewRepositoryWithQueryProvider(db, &config.Config{BatchSize: 100}, config.Database{Driver: config.MySQL}, &mockQueryProvider{})
+	ctx := context.Background()
 
 	msgBatchId := uuid.MustParse("f58e7c8a-e0d2-47fb-8111-eb0ae02ea21e")
 	rows := sqlmock.NewRows(columns).
@@ -107,7 +114,7 @@ func TestRepository_GetBatch(t *testing.T) {
 
 		mock.ExpectQuery("SELECT.* FROM outbox").WillReturnRows(rows)
 
-		got, err := repo.GetBatch()
+		got, err := repo.GetBatch(ctx)
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
@@ -131,7 +138,7 @@ func TestRepository_GetBatch(t *testing.T) {
 		mock.ExpectExec(`UPDATE outbox LIMIT 100`).
 			WillReturnResult(sqlmock.NewResult(1, 0))
 
-		_, err := repo.GetBatch()
+		_, err := repo.GetBatch(ctx)
 		if !errors.Is(err, ErrNoEvents) {
 			t.Fatalf("expected error '%s' but got '%s'", ErrNoEvents, err)
 		}
@@ -145,7 +152,7 @@ func TestRepository_GetBatch(t *testing.T) {
 		mock.ExpectExec(`UPDATE outbox LIMIT 100`).
 			WillReturnError(errors.New("oops"))
 
-		_, err := repo.GetBatch()
+		_, err := repo.GetBatch(ctx)
 		if err == nil {
 			t.Error("expected an error but got nil")
 		}
@@ -161,7 +168,7 @@ func TestRepository_GetBatch(t *testing.T) {
 
 		mock.ExpectQuery("SELECT.* FROM outbox").WillReturnError(errors.New("oops"))
 
-		_, err := repo.GetBatch()
+		_, err := repo.GetBatch(ctx)
 		if err == nil {
 			t.Error("expected an error but got nil")
 		}
@@ -176,10 +183,12 @@ func TestRepository_CommitBatch(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
 
+	ctx := context.Background()
+
 	batchId := uuid.New()
 	batch := createMockBatch(batchId)
 
-	repo := NewRepositoryWithQueryProvider(db, &config.Config{}, &mockQueryProvider{})
+	repo := NewRepositoryWithQueryProvider(db, &config.Config{}, config.Database{Driver: config.MySQL}, &mockQueryProvider{})
 
 	mock.ExpectBegin()
 	mock.ExpectExec("UPDATE outbox SET error_reason =.* WHERE id =.*").
@@ -192,7 +201,7 @@ func TestRepository_CommitBatch(t *testing.T) {
 
 	mock.ExpectCommit()
 
-	repo.CommitBatch(batch)
+	repo.CommitBatch(ctx, batch)
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("some SQL expectations were not met: %s", err)
@@ -203,10 +212,12 @@ func TestRepository_CommitBatchWithTransactionCreateError(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
 
-	repo := NewRepositoryWithQueryProvider(db, &config.Config{}, &mockQueryProvider{})
+	ctx := context.Background()
+
+	repo := NewRepositoryWithQueryProvider(db, &config.Config{}, config.Database{Driver: config.MySQL}, &mockQueryProvider{})
 
 	mock.ExpectBegin().WillReturnError(errors.New("oops"))
-	repo.CommitBatch(&Batch{Id: uuid.New(), Messages: []*Message{}})
+	repo.CommitBatch(ctx, &Batch{Id: uuid.New(), Messages: []*Message{}})
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("some SQL expectations were not met: %s", err)
@@ -217,7 +228,9 @@ func TestRepository_CommitBatchWithErroredMessageUpdateQueryError(t *testing.T) 
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
 
-	repo := NewRepositoryWithQueryProvider(db, &config.Config{}, &mockQueryProvider{})
+	ctx := context.Background()
+
+	repo := NewRepositoryWithQueryProvider(db, &config.Config{}, config.Database{Driver: config.MySQL}, &mockQueryProvider{})
 
 	batchId := uuid.New()
 	batch := createMockBatch(batchId)
@@ -233,7 +246,7 @@ func TestRepository_CommitBatchWithErroredMessageUpdateQueryError(t *testing.T) 
 
 	mock.ExpectCommit()
 
-	repo.CommitBatch(batch)
+	repo.CommitBatch(ctx, batch)
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("some SQL expectations were not met: %s", err)
@@ -244,7 +257,9 @@ func TestRepository_CommitBatchWithSuccessfulMessageUpdateQueryError(t *testing.
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
 
-	repo := NewRepositoryWithQueryProvider(db, &config.Config{}, &mockQueryProvider{})
+	ctx := context.Background()
+
+	repo := NewRepositoryWithQueryProvider(db, &config.Config{}, config.Database{Driver: config.MySQL}, &mockQueryProvider{})
 
 	batchId := uuid.New()
 	batch := createMockBatchOfSuccessfulMessagesOnly(batchId)
@@ -256,7 +271,7 @@ func TestRepository_CommitBatchWithSuccessfulMessageUpdateQueryError(t *testing.
 
 	mock.ExpectRollback()
 
-	repo.CommitBatch(batch)
+	repo.CommitBatch(ctx, batch)
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("some SQL expectations were not met: %s", err)
@@ -267,14 +282,16 @@ func TestRepository_DeletePublished(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
 
-	repo := NewRepositoryWithQueryProvider(db, &config.Config{}, &mockQueryProvider{})
+	ctx := context.Background()
+
+	repo := NewRepositoryWithQueryProvider(db, &config.Config{}, config.Database{Driver: config.MySQL}, &mockQueryProvider{})
 
 	now := time.Now()
 	mock.ExpectExec("DELETE FROM outbox WHERE push_completed_at <=.*").
 		WithArgs(now).
 		WillReturnResult(sqlmock.NewResult(0, 100))
 
-	affRows, err := repo.DeletePublished(now)
+	affRows, err := repo.DeletePublished(ctx, now)
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
@@ -292,14 +309,16 @@ func TestRepository_DeletePublishedWithError(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
 
-	repo := NewRepositoryWithQueryProvider(db, &config.Config{}, &mockQueryProvider{})
+	ctx := context.Background()
+
+	repo := NewRepositoryWithQueryProvider(db, &config.Config{}, config.Database{Driver: config.MySQL}, &mockQueryProvider{})
 
 	now := time.Now()
 	mock.ExpectExec("DELETE FROM outbox WHERE push_completed_at <=.*").
 		WithArgs(now).
 		WillReturnError(errors.New("oops"))
 
-	affRows, err := repo.DeletePublished(now)
+	affRows, err := repo.DeletePublished(ctx, now)
 	if err == nil {
 		t.Fatal("expected an error but got nil")
 	}
@@ -317,12 +336,14 @@ func TestRepository_GetQueueSize(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
 
+	ctx := context.Background()
+
 	rows := sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(10)
-	repo := NewRepositoryWithQueryProvider(db, &config.Config{}, &mockQueryProvider{})
+	repo := NewRepositoryWithQueryProvider(db, &config.Config{}, config.Database{Driver: config.MySQL}, &mockQueryProvider{})
 	mock.ExpectQuery("SELECT COUNT.*WHERE.*").
 		WillReturnRows(rows)
 
-	size, err := repo.GetQueueSize()
+	size, err := repo.GetQueueSize(ctx)
 	if err != nil {
 		t.Errorf("unexpected error: %s", err)
 	}
@@ -336,12 +357,14 @@ func TestRepository_GetTotalSize(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
 
+	ctx := context.Background()
+
 	rows := sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(99)
-	repo := NewRepositoryWithQueryProvider(db, &config.Config{}, &mockQueryProvider{})
+	repo := NewRepositoryWithQueryProvider(db, &config.Config{}, config.Database{Driver: config.MySQL}, &mockQueryProvider{})
 	mock.ExpectQuery("SELECT COUNT.*").
 		WillReturnRows(rows)
 
-	size, err := repo.GetTotalSize()
+	size, err := repo.GetTotalSize(ctx)
 	if err != nil {
 		t.Errorf("unexpected error: %s", err)
 	}

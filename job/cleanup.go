@@ -1,17 +1,21 @@
 package job
 
 import (
+	"context"
 	"net/http"
 	"time"
 
+	nr "github.com/newrelic/go-agent/v3/newrelic"
+
 	"inviqa/kafka-outbox-relay/config"
 	"inviqa/kafka-outbox-relay/log"
+	"inviqa/kafka-outbox-relay/newrelic"
 	"inviqa/kafka-outbox-relay/outbox"
 	"inviqa/kafka-outbox-relay/outbox/data"
 )
 
 type publishedDeleter interface {
-	DeletePublished(olderThan time.Time) (int64, error)
+	DeletePublished(ctx context.Context, olderThan time.Time) (int64, error)
 }
 
 type cleanup struct {
@@ -19,22 +23,29 @@ type cleanup struct {
 	deleterFactory func() publishedDeleter
 }
 
-func RunCleanup(dbs data.DBs, cfg *config.Config) int {
+func RunCleanup(parent context.Context, nrApp *nr.Application, dbs data.DBs, cfg *config.Config) int {
+	ctx, txn := newrelic.ContextWithTxn(parent, "run cleanup", nrApp)
+	defer txn.End()
+
 	var exitCode int
 	dbs.Each(func(db data.DB) {
-		exitCode += doCleanup(db, cfg)
+		exitCode += doCleanup(ctx, db, cfg)
 	})
 	return normalizeExitCode(exitCode)
 }
 
-func doCleanup(db data.DB, cfg *config.Config) int {
+func doCleanup(ctx context.Context, db data.DB, cfg *config.Config) int {
+	txn := nr.FromContext(ctx)
+	defer txn.StartSegment("doCleanup() " + db.Config().Driver.String()).End()
+
 	j := newCleanupWithDefaults(db, cfg)
 
 	if cfg.SidecarProxyUrl != "" {
 		j.EnableSideCarProxyQuit(cfg.SidecarProxyUrl)
 	}
 
-	if err := j.Execute(); err != nil {
+	if err := j.Execute(ctx); err != nil {
+		txn.NoticeError(err)
 		return 1
 	}
 
@@ -52,8 +63,8 @@ func newCleanupWithDefaults(db data.DB, cfg *config.Config) *cleanup {
 	}
 }
 
-func (c *cleanup) Execute() error {
-	rows, err := c.deleterFactory().DeletePublished(time.Now().Add(time.Duration(-1) * time.Hour))
+func (c *cleanup) Execute(ctx context.Context) error {
+	rows, err := c.deleterFactory().DeletePublished(ctx, time.Now().Add(time.Duration(-1)*time.Hour))
 	if err != nil {
 		log.Logger.WithError(err).Error("an error occurred whilst deleting published outbox records")
 		return err

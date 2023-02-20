@@ -26,9 +26,10 @@ func TestNewBatchProcessor(t *testing.T) {
 	exp := KafkaBatchProcessor{
 		repo:      repo,
 		publisher: pub,
+		nrApp:     nil,
 	}
 
-	if diff := deep.Equal(exp, NewBatchProcessor(repo, pub)); diff != nil {
+	if diff := deep.Equal(exp, NewBatchProcessor(repo, pub, nil)); diff != nil {
 		t.Error(diff)
 	}
 }
@@ -40,7 +41,7 @@ func TestKafkaBatchProcessor_ListenAndProcess(t *testing.T) {
 	pub := test.NewMockPublisher()
 	ch := make(chan *outbox.Batch)
 
-	proc := NewBatchProcessor(repo, pub)
+	proc := NewBatchProcessor(repo, pub, nil)
 	go proc.ListenAndProcess(ctx, ch)
 
 	b1 := &outbox.Batch{
@@ -99,7 +100,7 @@ func TestKafkaBatchProcessor_ListenAndProcessWithPublishError(t *testing.T) {
 	pub := test.NewMockPublisher()
 	ch := make(chan *outbox.Batch)
 
-	proc := NewBatchProcessor(repo, pub)
+	proc := NewBatchProcessor(repo, pub, nil)
 	go proc.ListenAndProcess(ctx, ch)
 
 	b1 := &outbox.Batch{
@@ -153,7 +154,7 @@ func TestKafkaBatchProcessor_ListenAndProcessIgnoresMessagesWithNoTopic(t *testi
 	pub := test.NewMockPublisher()
 	ch := make(chan *outbox.Batch)
 
-	proc := NewBatchProcessor(repo, pub)
+	proc := NewBatchProcessor(repo, pub, nil)
 	go proc.ListenAndProcess(ctx, ch)
 
 	b1 := &outbox.Batch{
@@ -198,7 +199,7 @@ func TestKafkaBatchProcessor_ListenAndProcessWithEmptyBatch(t *testing.T) {
 	pub := test.NewMockPublisher()
 	ch := make(chan *outbox.Batch)
 
-	proc := NewBatchProcessor(repo, pub)
+	proc := NewBatchProcessor(repo, pub, nil)
 	go proc.ListenAndProcess(ctx, ch)
 
 	b1 := &outbox.Batch{
@@ -222,7 +223,7 @@ func TestKafkaBatchProcessor_ListenAndProcessWithNilBatch(t *testing.T) {
 	pub := test.NewMockPublisher()
 	ch := make(chan *outbox.Batch)
 
-	proc := NewBatchProcessor(repo, pub)
+	proc := NewBatchProcessor(repo, pub, nil)
 	go proc.ListenAndProcess(ctx, ch)
 
 	ch <- nil
@@ -236,7 +237,7 @@ func TestKafkaBatchProcessor_ListenAndProcessTerminatesWhenContextIsCancelled(t 
 	pub := test.NewMockPublisher()
 	ch := make(chan *outbox.Batch)
 
-	proc := NewBatchProcessor(repo, pub)
+	proc := NewBatchProcessor(repo, pub, nil)
 	go proc.ListenAndProcess(ctx, ch)
 
 	routines := runtime.NumGoroutine()

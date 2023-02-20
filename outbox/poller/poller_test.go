@@ -17,7 +17,7 @@ func TestNew(t *testing.T) {
 	repo := test.NewMockRepository()
 	ch := make(chan *outbox.Batch)
 
-	if nil == New(repo, ch) {
+	if nil == New(repo, ch, nil) {
 		t.Errorf("received nil from New()")
 	}
 }
@@ -33,7 +33,7 @@ func Test_Poller_Poll(t *testing.T) {
 	repoWithBatches.AddBatch(b2)
 
 	t.Run("it polls for events and sends them for processing", func(t *testing.T) {
-		p := New(repoWithBatches, ch)
+		p := New(repoWithBatches, ch, nil)
 		go p.Poll(context.Background(), time.Millisecond*10)
 
 		readFromChannelUntilBatchReceived(b1, ch, t)
@@ -45,7 +45,7 @@ func Test_Poller_Poll(t *testing.T) {
 		repo.ReturnErrors()
 
 		ctx, cancel := context.WithCancel(context.Background())
-		p := New(repo, ch)
+		p := New(repo, ch, nil)
 		go p.Poll(ctx, time.Second*200)
 
 		time.Sleep(time.Millisecond * 100)
@@ -61,7 +61,7 @@ func Test_Poller_Poll(t *testing.T) {
 		repo.ReturnNoEventsError()
 
 		ctx, cancel := context.WithCancel(context.Background())
-		p := New(repo, ch)
+		p := New(repo, ch, nil)
 		go p.Poll(ctx, time.Second*200)
 
 		time.Sleep(time.Millisecond * 100)
@@ -74,7 +74,7 @@ func Test_Poller_Poll(t *testing.T) {
 
 	t.Run("it stops goroutine when context is cancelled", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
-		p := New(repoWithBatches, ch)
+		p := New(repoWithBatches, ch, nil)
 		go p.Poll(ctx, time.Millisecond*10)
 
 		routines := runtime.NumGoroutine()

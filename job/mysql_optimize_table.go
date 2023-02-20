@@ -1,8 +1,11 @@
 package job
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
+
+	"github.com/newrelic/go-agent/v3/newrelic"
 
 	"inviqa/kafka-outbox-relay/log"
 )
@@ -13,7 +16,9 @@ type mysqlOptimizeTable struct {
 	SidecarQuitter
 }
 
-func (o *mysqlOptimizeTable) Execute() error {
+func (o *mysqlOptimizeTable) Execute(ctx context.Context) error {
+	defer o.newRelicSegment(ctx, "OPTIMIZE TABLE").End()
+
 	_, err := o.Db.Exec(fmt.Sprintf("OPTIMIZE TABLE %s;", o.TableName))
 
 	if err == nil {
@@ -30,4 +35,13 @@ func (o *mysqlOptimizeTable) Execute() error {
 	}
 
 	return err
+}
+
+func (o *mysqlOptimizeTable) newRelicSegment(ctx context.Context, operation string) *newrelic.DatastoreSegment {
+	return &newrelic.DatastoreSegment{
+		Product:    newrelic.DatastoreMySQL,
+		Collection: o.TableName,
+		Operation:  operation,
+		StartTime:  newrelic.FromContext(ctx).StartSegmentNow(),
+	}
 }

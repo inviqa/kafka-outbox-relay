@@ -85,6 +85,7 @@ attributes:
         DB_PASS: = @('database.pass')
         DB_NAME: = @('database.name')
         DB_DRIVER: = @('database.platform')
+        NEW_RELIC_ENABLED: "false"
     postgres:
       version: 11.7
     mysql:

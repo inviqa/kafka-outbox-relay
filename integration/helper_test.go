@@ -182,9 +182,9 @@ func setupConfig() *config.Config {
 func pollForMessages() {
 	batchCh := make(chan *outbox.Batch, 10)
 
-	go poller.New(repo, batchCh).Poll(context.Background(), time.Millisecond*100)
+	go poller.New(repo, batchCh, nil).Poll(context.Background(), time.Millisecond*100)
 
-	processor.NewBatchProcessor(repo, pub).ListenAndProcess(context.Background(), batchCh)
+	processor.NewBatchProcessor(repo, pub, nil).ListenAndProcess(context.Background(), batchCh)
 }
 
 func waitForBatchToBePolled() {
