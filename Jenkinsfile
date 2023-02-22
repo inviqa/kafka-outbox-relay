@@ -37,6 +37,7 @@ pipeline {
                 not { triggeredBy 'TimerTrigger' }
                 anyOf {
                     branch 'master'
+                    changeRequest target: 'master'
                 }
             }
             steps {

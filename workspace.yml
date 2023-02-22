@@ -51,9 +51,9 @@ attributes:
         platforms:
         - "linux/amd64"
         - "linux/arm64"
-    production:
-      additional_tags:
-      - v1.1.0
+    # production:
+    #   additional_tags:
+    #   - v1.1.0
   kafka:
     publish_attempts: 3
   database:
