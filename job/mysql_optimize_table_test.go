@@ -1,14 +1,17 @@
 package job
 
 import (
+	"context"
 	"errors"
-	"inviqa/kafka-outbox-relay/job/test"
 	"testing"
+
+	"inviqa/kafka-outbox-relay/job/test"
 
 	"github.com/DATA-DOG/go-sqlmock"
 )
 
 func TestMysqlOptimizeTable_Execute(t *testing.T) {
+	ctx := context.Background()
 	db, mock, _ := sqlmock.New()
 	mock.ExpectExec("OPTIMIZE TABLE outbox;").WillReturnResult(sqlmock.NewResult(0, 0))
 
@@ -17,7 +20,7 @@ func TestMysqlOptimizeTable_Execute(t *testing.T) {
 		TableName:      "outbox",
 		SidecarQuitter: SidecarQuitter{},
 	}
-	err := j.Execute()
+	err := j.Execute(ctx)
 
 	if err != nil {
 		t.Errorf("unexpected error: %s", err)
@@ -29,6 +32,7 @@ func TestMysqlOptimizeTable_Execute(t *testing.T) {
 }
 
 func TestMysqlOptimizeTable_ExecuteWithError(t *testing.T) {
+	ctx := context.Background()
 	db, mock, _ := sqlmock.New()
 	mock.ExpectExec("OPTIMIZE TABLE outbox;").WillReturnError(errors.New("oops"))
 
@@ -37,7 +41,7 @@ func TestMysqlOptimizeTable_ExecuteWithError(t *testing.T) {
 		TableName:      "outbox",
 		SidecarQuitter: SidecarQuitter{},
 	}
-	err := j.Execute()
+	err := j.Execute(ctx)
 
 	if err == nil {
 		t.Error("expected an error but got nil")
@@ -49,6 +53,7 @@ func TestMysqlOptimizeTable_ExecuteWithError(t *testing.T) {
 }
 
 func TestMysqlOptimizeTable_ExecuteWithSidecarProxyQuit(t *testing.T) {
+	ctx := context.Background()
 	db, mock, _ := sqlmock.New()
 	mock.ExpectExec("OPTIMIZE TABLE outbox;").WillReturnResult(sqlmock.NewResult(0, 0))
 	cl := test.NewMockHttpClient()
@@ -58,7 +63,7 @@ func TestMysqlOptimizeTable_ExecuteWithSidecarProxyQuit(t *testing.T) {
 		SidecarQuitter: SidecarQuitter{Client: cl},
 	}
 	j.EnableSideCarProxyQuit("http://localhost:8000")
-	err := j.Execute()
+	err := j.Execute(ctx)
 
 	if err != nil {
 		t.Errorf("unexpected error: %s", err)
@@ -74,6 +79,7 @@ func TestMysqlOptimizeTable_ExecuteWithSidecarProxyQuit(t *testing.T) {
 }
 
 func TestMysqlOptimizeTable_ExecuteWithSidecarProxyQuitClientError(t *testing.T) {
+	ctx := context.Background()
 	db, mock, _ := sqlmock.New()
 	mock.ExpectExec("OPTIMIZE TABLE outbox;").WillReturnResult(sqlmock.NewResult(0, 0))
 	cl := test.NewMockHttpClient()
@@ -84,7 +90,7 @@ func TestMysqlOptimizeTable_ExecuteWithSidecarProxyQuitClientError(t *testing.T)
 		SidecarQuitter: SidecarQuitter{Client: cl},
 	}
 	j.EnableSideCarProxyQuit("http://localhost:8000")
-	err := j.Execute()
+	err := j.Execute(ctx)
 
 	if err == nil {
 		t.Error("expected an error but got nil")

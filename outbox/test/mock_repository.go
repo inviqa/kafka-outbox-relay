@@ -1,6 +1,7 @@
 package test
 
 import (
+	"context"
 	"errors"
 	"reflect"
 	"sync"
@@ -29,7 +30,7 @@ func NewMockRepository() *MockRepository {
 	}
 }
 
-func (mr *MockRepository) GetBatch() (*outbox.Batch, error) {
+func (mr *MockRepository) GetBatch(ctx context.Context) (*outbox.Batch, error) {
 	mr.RLock()
 	defer mr.RUnlock()
 	mr.getBatchCallCount++
@@ -45,7 +46,7 @@ func (mr *MockRepository) GetBatch() (*outbox.Batch, error) {
 	return mr.popBatch(), nil
 }
 
-func (mr *MockRepository) CommitBatch(batch *outbox.Batch) {
+func (mr *MockRepository) CommitBatch(ctx context.Context, batch *outbox.Batch) {
 	mr.Lock()
 	defer mr.Unlock()
 	mr.batchesCommitted = append(mr.batchesCommitted, batch)
@@ -83,7 +84,7 @@ func (mr *MockRepository) GetCommittedBatch(batch *outbox.Batch) *outbox.Batch {
 	return nil
 }
 
-func (mr *MockRepository) DeletePublished(olderThan time.Time) (int64, error) {
+func (mr *MockRepository) DeletePublished(ctx context.Context, olderThan time.Time) (int64, error) {
 	if mr.returnError {
 		return 0, errors.New("oops")
 	}

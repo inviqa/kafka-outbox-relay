@@ -17,7 +17,7 @@ func TestObserveQueueSize(t *testing.T) {
 	repo2.SetQueueSize(10)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	go ObserveQueueSize([]Sizer{repo1, repo2}, ctx)
+	go ObserveQueueSize(ctx, []Sizer{repo1, repo2})
 	time.Sleep(time.Millisecond * 100)
 	cancel()
 
@@ -33,7 +33,7 @@ func TestObserveQueueSize_WithRepositoryError(t *testing.T) {
 	repo.ReturnErrors()
 
 	ctx, cancel := context.WithCancel(context.Background())
-	go ObserveQueueSize([]Sizer{repo}, ctx)
+	go ObserveQueueSize(ctx, []Sizer{repo})
 	time.Sleep(time.Millisecond * 100)
 	cancel()
 

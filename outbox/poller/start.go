@@ -3,6 +3,8 @@ package poller
 import (
 	"context"
 
+	nr "github.com/newrelic/go-agent/v3/newrelic"
+
 	"inviqa/kafka-outbox-relay/config"
 	"inviqa/kafka-outbox-relay/kafka"
 	"inviqa/kafka-outbox-relay/log"
@@ -10,7 +12,7 @@ import (
 	"inviqa/kafka-outbox-relay/outbox/processor"
 )
 
-func Start(cfg *config.Config, repo outbox.Repository, ctx context.Context) func() {
+func Start(ctx context.Context, cfg *config.Config, repo outbox.Repository, nrApp *nr.Application) func() {
 	logger := log.Logger.WithField("config", cfg)
 
 	// if polling has been disabled, we should
@@ -27,9 +29,9 @@ func Start(cfg *config.Config, repo outbox.Repository, ctx context.Context) func
 
 	batchCh := make(chan *outbox.Batch, 10)
 	pub := kafka.NewPublisher(cfg.KafkaHost, kafka.NewSaramaConfig(cfg.TLSEnable, cfg.TLSSkipVerifyPeer))
-	go New(repo, batchCh).Poll(ctx, cfg.GetPollIntervalDurationInMs())
+	go New(repo, batchCh, nrApp).Poll(ctx, cfg.GetPollIntervalDurationInMs())
 
-	proc := processor.NewBatchProcessor(repo, pub)
+	proc := processor.NewBatchProcessor(repo, pub, nrApp)
 	for i := 0; i < cfg.WriteConcurrency; i++ {
 		go proc.ListenAndProcess(ctx, batchCh)
 	}

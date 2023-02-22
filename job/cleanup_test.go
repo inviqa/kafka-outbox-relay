@@ -1,6 +1,7 @@
 package job
 
 import (
+	"context"
 	"net/http"
 	"testing"
 
@@ -26,12 +27,13 @@ func TestNewCleanupWithDefaultClient(t *testing.T) {
 }
 
 func TestCleanup_Execute(t *testing.T) {
+	ctx := context.Background()
 	repo := outboxtest.NewMockRepository()
 	repo.SetDeletedRowsCount(100)
 	cl := test.NewMockHttpClient()
 	j := newTestCleanup(cl, repo)
 
-	if err := j.Execute(); err != nil {
+	if err := j.Execute(ctx); err != nil {
 		t.Errorf("unexpected error received: %s", err)
 	}
 
@@ -41,13 +43,14 @@ func TestCleanup_Execute(t *testing.T) {
 }
 
 func TestCleanup_ExecuteWithSidecarProxyQuit(t *testing.T) {
+	ctx := context.Background()
 	repo := outboxtest.NewMockRepository()
 	repo.SetDeletedRowsCount(99)
 	cl := test.NewMockHttpClient()
 	j := newTestCleanup(cl, repo)
 	j.EnableSideCarProxyQuit("http://localhost:9090")
 
-	if err := j.Execute(); err != nil {
+	if err := j.Execute(ctx); err != nil {
 		t.Errorf("unexpected error received: %s", err)
 	}
 
@@ -57,12 +60,13 @@ func TestCleanup_ExecuteWithSidecarProxyQuit(t *testing.T) {
 }
 
 func TestCleanup_ExecuteWithRepoError(t *testing.T) {
+	ctx := context.Background()
 	repo := outboxtest.NewMockRepository()
 	repo.ReturnErrors()
 	cl := test.NewMockHttpClient()
 	j := newTestCleanup(cl, repo)
 
-	if err := j.Execute(); err == nil {
+	if err := j.Execute(ctx); err == nil {
 		t.Error("expected an error, but got nil")
 	}
 
@@ -72,13 +76,14 @@ func TestCleanup_ExecuteWithRepoError(t *testing.T) {
 }
 
 func TestCleanup_ExecuteWithHttpClientError(t *testing.T) {
+	ctx := context.Background()
 	repo := outboxtest.NewMockRepository()
 	cl := test.NewMockHttpClient()
 	cl.ReturnErrors()
 	j := newTestCleanup(cl, repo)
 	j.EnableSideCarProxyQuit("http://localhost:15000/")
 
-	if err := j.Execute(); err == nil {
+	if err := j.Execute(ctx); err == nil {
 		t.Error("expected an error, but got nil")
 	}
 }

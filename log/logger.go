@@ -8,13 +8,13 @@ import (
 
 const defaultLevel = logrus.ErrorLevel
 
-var Logger logrus.FieldLogger
+var Logger *logrus.Logger
 
 func init() {
 	Logger = newLogger(os.Getenv("LOG_LEVEL"))
 }
 
-func newLogger(level string) logrus.FieldLogger {
+func newLogger(level string) *logrus.Logger {
 	l := logrus.New()
 	l.Formatter = &logrus.JSONFormatter{}
 	l.Out = os.Stdout

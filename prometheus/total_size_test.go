@@ -17,7 +17,7 @@ func TestObserveTotalSize(t *testing.T) {
 	repo2.SetTotalSize(10)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	go ObserveTotalSize([]Sizer{repo1, repo2}, ctx)
+	go ObserveTotalSize(ctx, []Sizer{repo1, repo2})
 	time.Sleep(time.Millisecond * 100)
 	cancel()
 
@@ -33,7 +33,7 @@ func TestObserveTotalSize_WithRepositoryError(t *testing.T) {
 	repo.ReturnErrors()
 
 	ctx, cancel := context.WithCancel(context.Background())
-	go ObserveTotalSize([]Sizer{repo}, ctx)
+	go ObserveTotalSize(ctx, []Sizer{repo})
 	time.Sleep(time.Millisecond * 100)
 	cancel()
 

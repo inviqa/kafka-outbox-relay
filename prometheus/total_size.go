@@ -19,7 +19,7 @@ func init() {
 	})
 }
 
-func ObserveTotalSize(sizers []Sizer, ctx context.Context) {
+func ObserveTotalSize(ctx context.Context, sizers []Sizer) {
 	for {
 		size := totalSize(sizers)
 

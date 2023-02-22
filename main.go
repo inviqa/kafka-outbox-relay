@@ -6,9 +6,12 @@ import (
 	"os/signal"
 	"syscall"
 
+	nr "github.com/newrelic/go-agent/v3/newrelic"
+
 	"inviqa/kafka-outbox-relay/config"
 	"inviqa/kafka-outbox-relay/job"
 	"inviqa/kafka-outbox-relay/log"
+	"inviqa/kafka-outbox-relay/newrelic"
 	"inviqa/kafka-outbox-relay/outbox"
 	"inviqa/kafka-outbox-relay/outbox/data"
 	"inviqa/kafka-outbox-relay/outbox/poller"
@@ -16,6 +19,9 @@ import (
 )
 
 func main() {
+	nrApp, stopAgent := newrelic.StartAgent()
+	defer stopAgent()
+
 	ctx, cancel := context.WithCancel(context.Background())
 	cfg, err := config.NewConfig()
 	if err != nil {
@@ -35,11 +41,11 @@ func main() {
 	var exitCode int
 	switch {
 	case cfg.RunCleanup:
-		exitCode = job.RunCleanup(dbs, cfg)
+		exitCode = job.RunCleanup(ctx, nrApp, dbs, cfg)
 	case cfg.RunOptimize:
-		exitCode = job.RunOptimize(dbs, cfg)
+		exitCode = job.RunOptimize(ctx, nrApp, dbs, cfg)
 	default:
-		runMainApp(dbs, cfg, ctx)
+		runMainApp(ctx, nrApp, dbs, cfg)
 	}
 
 	if exitCode > 0 {
@@ -48,7 +54,7 @@ func main() {
 	}
 }
 
-func runMainApp(dbs data.DBs, cfg *config.Config, ctx context.Context) {
+func runMainApp(ctx context.Context, nrApp *nr.Application, dbs data.DBs, cfg *config.Config) {
 	var repo outbox.Repository
 	var cleanups []func()
 	defer func() {
@@ -60,10 +66,10 @@ func runMainApp(dbs data.DBs, cfg *config.Config, ctx context.Context) {
 	var sizers []prometheus.Sizer
 	dbs.Each(func(db data.DB) {
 		repo = outbox.NewRepository(db, cfg)
-		cleanups = append(cleanups, poller.Start(cfg, repo, ctx))
+		cleanups = append(cleanups, poller.Start(ctx, cfg, repo, nrApp))
 	})
 
-	go prometheus.ObserveQueueSize(sizers, ctx)
-	go prometheus.ObserveTotalSize(sizers, ctx)
+	go prometheus.ObserveQueueSize(ctx, sizers)
+	go prometheus.ObserveTotalSize(ctx, sizers)
 	prometheus.StartHttpServer(ctx, cfg, dbs)
 }

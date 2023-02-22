@@ -6,6 +6,8 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/newrelic/go-agent/v3/newrelic"
+
 	"inviqa/kafka-outbox-relay/log"
 
 	"github.com/alexflint/go-arg"
@@ -202,4 +204,17 @@ func (d DbDriver) Postgres() bool {
 
 func (d DbDriver) String() string {
 	return string(d)
+}
+
+func (d DbDriver) NewRelicType() newrelic.DatastoreProduct {
+	switch true {
+	case d.Postgres():
+		return newrelic.DatastorePostgres
+	case d.MySQL():
+		return newrelic.DatastoreMySQL
+	default:
+		log.Logger.Info("provided database driver is not configured with newrelic DatastoreSegment")
+	}
+
+	return ""
 }

@@ -1,8 +1,11 @@
 package job
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
+
+	"github.com/newrelic/go-agent/v3/newrelic"
 
 	"inviqa/kafka-outbox-relay/log"
 )
@@ -13,7 +16,9 @@ type postgresOptimizeTable struct {
 	SidecarQuitter
 }
 
-func (o *postgresOptimizeTable) Execute() error {
+func (o *postgresOptimizeTable) Execute(ctx context.Context) error {
+	defer o.newRelicSegment(ctx, "VACUUM").End()
+
 	_, err := o.Db.Exec(fmt.Sprintf("VACUUM %s;", o.TableName))
 
 	if err == nil {
@@ -30,4 +35,13 @@ func (o *postgresOptimizeTable) Execute() error {
 	}
 
 	return err
+}
+
+func (o *postgresOptimizeTable) newRelicSegment(ctx context.Context, operation string) *newrelic.DatastoreSegment {
+	return &newrelic.DatastoreSegment{
+		Product:    newrelic.DatastorePostgres,
+		Collection: o.TableName,
+		Operation:  operation,
+		StartTime:  newrelic.FromContext(ctx).StartSegmentNow(),
+	}
 }

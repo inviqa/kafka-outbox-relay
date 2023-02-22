@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"context"
 	"database/sql"
 	"testing"
 	"time"
@@ -48,7 +49,7 @@ func TestCleanupJobRemovesPublishedMessages(t *testing.T) {
 		insertOutboxMessages([]*outbox.Message{msg1, msg2, msg3})
 
 		Convey("When we execute a cleanup of the outbox", func() {
-			code := job.RunCleanup(dbs, cfg)
+			code := job.RunCleanup(context.Background(), nil, dbs, cfg)
 
 			Convey("Then the old messages should have been deleted", func() {
 				So(code, ShouldEqual, 0)
@@ -107,7 +108,7 @@ func TestCleanupJobRemovesPublishedMessagesWithHugeNumberOfMessages(t *testing.T
 			insertOutboxMessages([]*outbox.Message{msg1, msg2})
 
 			Convey("When we execute a cleanup of the outbox", func() {
-				code := job.RunCleanup(dbs, cfg)
+				code := job.RunCleanup(context.Background(), nil, dbs, cfg)
 
 				Convey("Then the old messages should have been deleted", func() {
 					So(code, ShouldEqual, 0)
@@ -147,7 +148,7 @@ func TestCleanupJobQuitsSidecarProxyWhenConfiguredToDoSo(t *testing.T) {
 		insertOutboxMessages([]*outbox.Message{msg1})
 
 		Convey("When we execute a cleanup of the outbox", func() {
-			code := job.RunCleanup(dbs, cfg)
+			code := job.RunCleanup(context.Background(), nil, dbs, cfg)
 
 			Convey("Then the old messages should have been deleted", func() {
 				So(code, ShouldEqual, 0)

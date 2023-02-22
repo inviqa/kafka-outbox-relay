@@ -13,11 +13,14 @@ import (
 	"strings"
 	"time"
 
+	nr "github.com/newrelic/go-agent/v3/newrelic"
+
 	"inviqa/kafka-outbox-relay/config"
 	h "inviqa/kafka-outbox-relay/integration/http"
 	testkafka "inviqa/kafka-outbox-relay/integration/kafka"
 	"inviqa/kafka-outbox-relay/kafka"
 	"inviqa/kafka-outbox-relay/log"
+	"inviqa/kafka-outbox-relay/newrelic"
 	"inviqa/kafka-outbox-relay/outbox"
 	"inviqa/kafka-outbox-relay/outbox/data"
 	"inviqa/kafka-outbox-relay/outbox/poller"
@@ -42,6 +45,8 @@ var (
 )
 
 func init() {
+	nrApp, _ := newrelic.StartAgent()
+
 	server = httptest.NewServer(h.GetHttpTestHandlerFunc())
 	setupConfig()
 
@@ -55,7 +60,7 @@ func init() {
 	ensureOutboxTableExists()
 	purgeOutboxTable()
 
-	go pollForMessages()
+	go pollForMessages(nrApp)
 }
 
 func returnErrorFromSyncProducerForMessage(msgBody string, err error) {
@@ -179,12 +184,12 @@ func setupConfig() *config.Config {
 	return cfg
 }
 
-func pollForMessages() {
+func pollForMessages(nrApp *nr.Application) {
 	batchCh := make(chan *outbox.Batch, 10)
 
-	go poller.New(repo, batchCh).Poll(context.Background(), time.Millisecond*100)
+	go poller.New(repo, batchCh, nrApp).Poll(context.Background(), time.Millisecond*100)
 
-	processor.NewBatchProcessor(repo, pub).ListenAndProcess(context.Background(), batchCh)
+	processor.NewBatchProcessor(repo, pub, nrApp).ListenAndProcess(context.Background(), batchCh)
 }
 
 func waitForBatchToBePolled() {
