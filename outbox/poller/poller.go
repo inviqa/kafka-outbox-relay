@@ -36,8 +36,8 @@ func (p Poller) Poll(parent context.Context, backoff time.Duration) {
 		if err != nil {
 			if err != outbox.ErrNoEvents {
 				log.Logger.WithError(err).Errorf("an unexpected error occurred when polling the outbox: %s", err)
+				txn.NoticeError(err)
 			}
-			txn.NoticeError(err)
 			txn.End()
 			time.Sleep(backoff)
 			continue
