@@ -28,7 +28,7 @@ func Start(ctx context.Context, cfg *config.Config, repo outbox.Repository, nrAp
 	logger.Info("starting outbox relay polling")
 
 	batchCh := make(chan *outbox.Batch, 10)
-	pub := kafka.NewPublisher(cfg.KafkaHost, kafka.NewSaramaConfig(cfg.TLSEnable, cfg.TLSSkipVerifyPeer))
+	pub := kafka.NewPublisher(cfg.KafkaHost, kafka.NewSaramaConfig(cfg.KafkaTlsEnabled, cfg.TLSSkipVerifyPeer))
 	go New(repo, batchCh, nrApp).Poll(ctx, cfg.GetPollIntervalDurationInMs())
 
 	proc := processor.NewBatchProcessor(repo, pub, nrApp)

@@ -113,7 +113,7 @@ func TestDatabase_GetDSN(t *testing.T) {
 		Pass              string
 		Name              string
 		Driver            DbDriver
-		TLSEnable         bool
+		KafkaTlsEnabled   bool
 		TLSSkipVerifyPeer bool
 	}
 	tests := []struct {
@@ -130,7 +130,7 @@ func TestDatabase_GetDSN(t *testing.T) {
 				Pass:              "pass",
 				Name:              "db-name",
 				Driver:            "mysql",
-				TLSEnable:         true,
+				KafkaTlsEnabled:   true,
 				TLSSkipVerifyPeer: true,
 			},
 			want: "user:pass@tcp(host:3306)/db-name?parseTime=true&tls=skip-verify&multiStatements=true",
@@ -144,7 +144,7 @@ func TestDatabase_GetDSN(t *testing.T) {
 				Pass:              "pass",
 				Name:              "db-name",
 				Driver:            "postgres",
-				TLSEnable:         true,
+				KafkaTlsEnabled:   true,
 				TLSSkipVerifyPeer: false,
 			},
 			want: "postgres://user:pass@host:5432/db-name?sslmode=verify-full",
@@ -159,7 +159,7 @@ func TestDatabase_GetDSN(t *testing.T) {
 				Password:          tt.fields.Pass,
 				Name:              tt.fields.Name,
 				Driver:            tt.fields.Driver,
-				TLSEnable:         tt.fields.TLSEnable,
+				KafkaTlsEnabled:   tt.fields.KafkaTlsEnabled,
 				TLSSkipVerifyPeer: tt.fields.TLSSkipVerifyPeer,
 			}
 			if got := db.GetDSN(); got != tt.want {

@@ -8,7 +8,7 @@ import (
 	"github.com/Shopify/sarama"
 )
 
-func NewSaramaConfig(tlsEnable bool, tlsSkipVerify bool) *sarama.Config {
+func NewSaramaConfig(KafkaTlsEnabled bool, tlsSkipVerify bool) *sarama.Config {
 	cfg := sarama.NewConfig()
 
 	host, _ := os.Hostname()
@@ -22,7 +22,7 @@ func NewSaramaConfig(tlsEnable bool, tlsSkipVerify bool) *sarama.Config {
 	cfg.Metadata.Retry.Backoff = 2 * time.Second
 	cfg.Consumer.Offsets.Initial = sarama.OffsetOldest
 
-	if tlsEnable {
+	if KafkaTlsEnabled {
 		cfg.Net.TLS.Enable = true
 		// #nosec G402
 		// we suppress this in gosec because it believes that InsecureSkipVerify is true, but it depends on the parameter

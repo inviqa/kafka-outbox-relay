@@ -78,6 +78,7 @@ attributes:
     app:
       environment:
         KAFKA_HOST: = @('services.kafka.host')
+        KAFKA_TLS_ENABLED: "false"
         KAFKA_PUBLISH_ATTEMPTS: =@('kafka.publish_attempts')
         DB_HOST: = @('database.host')
         DB_PORT: = @('database.port')

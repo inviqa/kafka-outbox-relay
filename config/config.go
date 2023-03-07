@@ -9,8 +9,6 @@ import (
 	"github.com/newrelic/go-agent/v3/newrelic"
 
 	"inviqa/kafka-outbox-relay/log"
-
-	"github.com/alexflint/go-arg"
 )
 
 const (
@@ -38,9 +36,9 @@ type args struct {
 	DBNames              []string `arg:"--db-name,env:DB_NAME,required"`
 	DBDriver             DbDriver `arg:"--db-driver,env:DB_DRIVER,required"`
 	DBOutboxTable        string
-	KafkaHost            []string `arg:"--kafka-host,env:KAFKA_HOST"`
+	KafkaHosts           []string `arg:"--kafka-host,env:KAFKA_HOST"`
 	KafkaPublishAttempts int      `arg:"--kafka-publish-attempts,env:KAFKA_PUBLISH_ATTEMPTS"`
-	TLSEnable            bool     `arg:"--kafka-tls,env:TLS_ENABLE"`
+	KafkaTlsEnabled      bool     `arg:"--kafka-tls-enabled,env:KAFKA_TLS_ENABLED"`
 	TLSSkipVerifyPeer    bool     `arg:"--kafka-tls-verify-peer,env:TLS_SKIP_VERIFY_PEER"`
 	WriteConcurrency     int      `arg:"--write-concurrency,env:WRITE_CONCURRENCY"`
 	PollFrequencyMs      int      `arg:"--poll-frequency-ms,env:POLL_FREQUENCY_MS"`
@@ -55,7 +53,7 @@ type Database struct {
 	Port                                    uint32
 	Driver                                  DbDriver
 	TLSSkipVerifyPeer                       bool
-	TLSEnable                               bool
+	KafkaTlsEnabled                         bool
 }
 
 type Config struct {
@@ -64,7 +62,7 @@ type Config struct {
 	DBs                  []Database
 	KafkaHost            []string
 	KafkaPublishAttempts int
-	TLSEnable            bool
+	KafkaTlsEnabled      bool
 	TLSSkipVerifyPeer    bool
 	WriteConcurrency     int
 	PollFrequencyMs      int
@@ -91,10 +89,10 @@ func NewConfig() (*Config, error) {
 	return &Config{
 		PollingDisabled:      a.PollingDisabled,
 		SkipMigrations:       a.SkipMigrations,
-		KafkaHost:            a.KafkaHost,
+		KafkaHost:            a.KafkaHosts,
 		DBs:                  databasesConfig(a),
 		KafkaPublishAttempts: a.KafkaPublishAttempts,
-		TLSEnable:            a.TLSEnable,
+		KafkaTlsEnabled:      a.KafkaTlsEnabled,
 		TLSSkipVerifyPeer:    a.TLSSkipVerifyPeer,
 		WriteConcurrency:     a.WriteConcurrency,
 		PollFrequencyMs:      a.PollFrequencyMs,
@@ -120,7 +118,7 @@ func databasesConfig(a *args) []Database {
 			Name:              dbName,
 			Driver:            a.DBDriver,
 			OutboxTable:       a.DBOutboxTable,
-			TLSEnable:         a.TLSEnable,
+			KafkaTlsEnabled:   a.KafkaTlsEnabled,
 			TLSSkipVerifyPeer: a.TLSSkipVerifyPeer,
 		})
 	}
@@ -135,7 +133,7 @@ func (d Database) GetDSN() string {
 	switch d.Driver {
 	case MySQL:
 		tls := "false"
-		if d.TLSEnable {
+		if d.KafkaTlsEnabled {
 			if d.TLSSkipVerifyPeer {
 				tls = "skip-verify"
 			} else {
@@ -145,7 +143,7 @@ func (d Database) GetDSN() string {
 		return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true&tls=%s&multiStatements=true", d.User, d.Password, d.Host, d.Port, d.Name, tls)
 	case Postgres:
 		sslMode := "disable"
-		if d.TLSEnable {
+		if d.KafkaTlsEnabled {
 			if d.TLSSkipVerifyPeer {
 				sslMode = "require"
 			} else {
@@ -170,7 +168,7 @@ func (c Config) MarshalJSON() ([]byte, error) {
 		"Databases":            c.DBs,
 		"KafkaHost":            c.KafkaHost,
 		"KafkaPublishAttempts": c.KafkaPublishAttempts,
-		"TLSEnable":            c.TLSEnable,
+		"KafkaTlsEnabled":      c.KafkaTlsEnabled,
 		"TLSSkipVerifyPeer":    c.TLSSkipVerifyPeer,
 		"WriteConcurrency":     c.WriteConcurrency,
 		"PollFrequencyMs":      c.PollFrequencyMs,
@@ -189,7 +187,7 @@ func (d Database) MarshalJSON() ([]byte, error) {
 		"Name":              d.Name,
 		"Driver":            d.Driver,
 		"OutboxTable":       d.OutboxTable,
-		"TLSEnable":         d.TLSEnable,
+		"KafkaTlsEnabled":   d.KafkaTlsEnabled,
 		"TLSSkipVerifyPeer": d.TLSSkipVerifyPeer,
 	})
 }
